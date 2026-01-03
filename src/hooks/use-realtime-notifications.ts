@@ -5,7 +5,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { useNotificationStore } from '@/stores/notification-store';
 import { useAuthStore } from '@/stores/auth-store';
 import type { Notification } from '@/types/database';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 export function useRealtimeNotifications() {
   const { user } = useAuthStore();
@@ -117,13 +117,13 @@ export function useRealtimeNotifications() {
             table: 'notifications',
             filter: `user_id=eq.${user.id}`,
           },
-          (payload) => {
+          (payload: RealtimePostgresChangesPayload<Notification>) => {
             const newNotification = payload.new as Notification;
             addNotification(newNotification);
 
             // Show browser notification if supported
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification(newNotification.title, {
+            if ('Notification' in window && window.Notification.permission === 'granted') {
+              new window.Notification(newNotification.title, {
                 body: newNotification.message,
                 icon: '/favicon.ico',
               });
@@ -138,7 +138,7 @@ export function useRealtimeNotifications() {
             table: 'notifications',
             filter: `user_id=eq.${user.id}`,
           },
-          (payload) => {
+          (payload: RealtimePostgresChangesPayload<Notification>) => {
             const updatedNotification = payload.new as Notification;
             if (updatedNotification.read) {
               markAsRead(updatedNotification.id);
@@ -153,7 +153,7 @@ export function useRealtimeNotifications() {
             table: 'notifications',
             filter: `user_id=eq.${user.id}`,
           },
-          (payload) => {
+          (payload: RealtimePostgresChangesPayload<Notification>) => {
             const deletedNotification = payload.old as { id: string };
             removeNotification(deletedNotification.id);
           }
