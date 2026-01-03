@@ -23,14 +23,17 @@ import { useAuthStore } from '@/stores/auth-store';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Project } from '@/types/database';
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   draft: 'bg-slate-500',
   requirements: 'bg-yellow-500',
   quoted: 'bg-blue-500',
   paid: 'bg-purple-500',
   in_progress: 'bg-cyan-500',
+  in_development: 'bg-indigo-500',
+  deploying: 'bg-violet-500',
   review: 'bg-orange-500',
   completed: 'bg-green-500',
+  failed: 'bg-red-500',
   cancelled: 'bg-red-500',
 };
 
@@ -40,8 +43,11 @@ const statusLabels: Record<string, string> = {
   quoted: 'Cotizado',
   paid: 'Pagado',
   in_progress: 'En desarrollo',
+  in_development: 'IA Desarrollando',
+  deploying: 'Desplegando',
   review: 'En revisión',
   completed: 'Completado',
+  failed: 'Fallido',
   cancelled: 'Cancelado',
 };
 

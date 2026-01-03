@@ -8,8 +8,11 @@ export type ProjectStatus =
   | 'quoted'          // Cotizado, esperando pago
   | 'paid'            // Pagado, en cola de desarrollo
   | 'in_progress'     // En desarrollo
+  | 'in_development'  // IA desarrollando autónomamente
+  | 'deploying'       // Desplegando a producción
   | 'review'          // En revisión con cliente
   | 'completed'       // Completado
+  | 'failed'          // Falló el desarrollo
   | 'cancelled';      // Cancelado
 
 export type ProjectType =
@@ -355,4 +358,23 @@ export interface Subscription {
   current_period_end: string;
   stripe_subscription_id?: string;
   created_at: string;
+}
+
+// Development Metadata
+export interface DevelopmentResult {
+  success: boolean;
+  generatedFiles: string[];
+  errors: string[];
+  completedAt: string;
+}
+
+export interface ProjectMetadata {
+  development_result?: DevelopmentResult;
+  development_error?: string;
+  supabase_config?: {
+    tables: string[];
+    edgeFunctions: string[];
+    realtimeEnabled: string[];
+  };
+  generated_at?: string;
 }
