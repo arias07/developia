@@ -269,7 +269,7 @@ export class DevelopmentAgent {
     // Crear repositorio y subir archivos
     const result = await initializeProjectRepo(
       projectName,
-      `Proyecto generado por DevelopIA: ${this.config.requirements.project_description || ''}`,
+      `Proyecto generado por Devvy: ${this.config.requirements.project_description || ''}`,
       files
     );
 
@@ -505,9 +505,9 @@ module.exports = nextConfig
 
 ${description}
 
-## 🚀 Generado con DevelopIA
+## 🚀 Generado con Devvy
 
-Este proyecto fue generado automáticamente por [DevelopIA](https://developia.vercel.app).
+Este proyecto fue generado automáticamente por [Devvy](https://devvy.tech).
 
 ## Tecnologías
 
@@ -555,7 +555,7 @@ Ejecutar migraciones en Supabase:
 
 ---
 
-Generado con ❤️ por DevelopIA
+Generado con ❤️ por Devvy
 `;
   }
 

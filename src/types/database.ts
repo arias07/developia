@@ -1,4 +1,4 @@
-// Database Types for DevelopIA Platform
+// Database Types for Devvy Platform
 
 export type UserRole = 'client' | 'admin' | 'project_manager' | 'developer' | 'designer' | 'freelancer' | 'consultant';
 

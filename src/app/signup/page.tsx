@@ -124,7 +124,7 @@ export default function SignupPage() {
           <h1 className="text-3xl font-bold text-white mb-4">
             Crea tu cuenta en{' '}
             <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-              DevelopIA
+              Devvy
             </span>
           </h1>
           <p className="text-slate-400 mb-8">
@@ -156,7 +156,7 @@ export default function SignupPage() {
             <div className="md:hidden mb-4">
               <Link href="/">
                 <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                  DevelopIA
+                  Devvy
                 </span>
               </Link>
             </div>

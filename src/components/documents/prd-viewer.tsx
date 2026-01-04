@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,10 +15,17 @@ import {
   AlertTriangle,
   CheckCircle,
   Loader2,
+  RefreshCw,
+  Printer,
+  FileDown,
+  ChevronDown,
 } from 'lucide-react';
+import { printPRDAsPDF, downloadPRDAsHTML, downloadPRDAsMarkdown } from '@/lib/pdf/prd-export';
+import type { PRDDocument as ExportPRDDocument } from '@/types/project';
 import type { PRDDocument, UserStory, TechnicalSpec } from '@/lib/openai/prd-generator';
 
 interface PRDViewerProps {
+  // Mode 1: Pass data directly
   prd?: PRDDocument;
   userStories?: UserStory[];
   technicalSpec?: TechnicalSpec;
@@ -26,18 +33,148 @@ interface PRDViewerProps {
   onGeneratePRD?: () => void;
   onGenerateStories?: () => void;
   onGenerateSpec?: () => void;
+  // Mode 2: Fetch by projectId
+  projectId?: string;
+  prdDocument?: string; // Raw markdown/text
 }
 
 export function PRDViewer({
-  prd,
-  userStories,
-  technicalSpec,
-  isLoading,
+  prd: initialPrd,
+  userStories: initialUserStories,
+  technicalSpec: initialTechnicalSpec,
+  isLoading: externalLoading,
   onGeneratePRD,
   onGenerateStories,
   onGenerateSpec,
+  projectId,
+  prdDocument,
 }: PRDViewerProps) {
   const [activeTab, setActiveTab] = useState('prd');
+  const [prd, setPrd] = useState<PRDDocument | undefined>(initialPrd);
+  const [userStories, setUserStories] = useState<UserStory[] | undefined>(initialUserStories);
+  const [technicalSpec, setTechnicalSpec] = useState<TechnicalSpec | undefined>(initialTechnicalSpec);
+  const [loading, setLoading] = useState<string | null>(null);
+  const [rawPrd, setRawPrd] = useState<string | null>(prdDocument || null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const isLoading = externalLoading || loading !== null;
+
+  // Convert PRDDocument to ExportPRDDocument format
+  const convertToExportFormat = (doc: PRDDocument): ExportPRDDocument => {
+    return {
+      projectName: doc.title,
+      projectDescription: doc.executiveSummary,
+      problemStatement: doc.problemStatement,
+      objectives: doc.objectives,
+      targetAudience: doc.targetAudience.description,
+      coreFeatures: doc.scopeAndFeatures.features
+        .filter(f => f.priority === 'must-have')
+        .map(f => ({ name: f.name, description: f.description })),
+      secondaryFeatures: doc.scopeAndFeatures.features
+        .filter(f => f.priority !== 'must-have')
+        .map(f => ({ name: f.name, description: f.description })),
+      userStories: doc.targetAudience.personas.map(p => ({
+        persona: p.name,
+        action: p.needs[0] || '',
+        benefit: p.needs[1] || '',
+      })),
+      technicalRequirements: doc.technicalRequirements.technologies,
+      designGuidelines: doc.designRequirements.style + '. ' + doc.designRequirements.brandGuidelines,
+      successMetrics: doc.successMetrics.map(m => `${m.metric}: ${m.target}`),
+      timeline: {
+        phases: doc.timeline.phases.map(p => ({
+          name: p.name,
+          duration: p.duration,
+          deliverables: p.deliverables,
+        })),
+      },
+      budget: {
+        total: 0,
+        currency: 'MXN',
+      },
+    };
+  };
+
+  const handleExportPDF = () => {
+    if (prd) {
+      printPRDAsPDF(convertToExportFormat(prd));
+      setShowExportMenu(false);
+    }
+  };
+
+  const handleExportHTML = () => {
+    if (prd) {
+      downloadPRDAsHTML(convertToExportFormat(prd));
+      setShowExportMenu(false);
+    }
+  };
+
+  const handleExportMD = () => {
+    if (prd) {
+      downloadPRDAsMarkdown(convertToExportFormat(prd));
+      setShowExportMenu(false);
+    }
+  };
+
+  // Generate document via API when using projectId mode
+  const generateDocument = useCallback(async (type: 'prd' | 'userStories' | 'technicalSpec') => {
+    if (!projectId) return;
+
+    setLoading(type);
+    try {
+      const endpoints = {
+        prd: '/api/generate/prd',
+        userStories: '/api/generate/user-stories',
+        technicalSpec: '/api/generate/technical-spec',
+      };
+
+      const response = await fetch(endpoints[type], {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (type === 'prd') {
+          setPrd(data.prd || data);
+          setRawPrd(data.markdown || JSON.stringify(data, null, 2));
+        } else if (type === 'userStories') {
+          setUserStories(data.stories || data);
+        } else if (type === 'technicalSpec') {
+          setTechnicalSpec(data.spec || data);
+        }
+      }
+    } catch (error) {
+      console.error(`Error generating ${type}:`, error);
+    } finally {
+      setLoading(null);
+    }
+  }, [projectId]);
+
+  const handleGeneratePRD = () => {
+    if (onGeneratePRD) {
+      onGeneratePRD();
+    } else if (projectId) {
+      generateDocument('prd');
+    }
+  };
+
+  const handleGenerateStories = () => {
+    if (onGenerateStories) {
+      onGenerateStories();
+    } else if (projectId) {
+      generateDocument('userStories');
+    }
+  };
+
+  const handleGenerateSpec = () => {
+    if (onGenerateSpec) {
+      onGenerateSpec();
+    } else if (projectId) {
+      generateDocument('technicalSpec');
+    }
+  };
 
   const downloadAsMarkdown = (content: string, filename: string) => {
     const blob = new Blob([content], { type: 'text/markdown' });
@@ -221,11 +358,11 @@ ${s.acceptanceCriteria.map((c) => `- [ ] ${c}`).join('\n')}
                 <FileText className="w-12 h-12 text-slate-600 mx-auto mb-4" />
                 <p className="text-slate-400 mb-4">No hay PRD generado aún</p>
                 <Button
-                  onClick={onGeneratePRD}
+                  onClick={handleGeneratePRD}
                   disabled={isLoading}
                   className="bg-purple-600 hover:bg-purple-700"
                 >
-                  {isLoading ? (
+                  {loading === 'prd' ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Generando...
@@ -242,15 +379,43 @@ ${s.acceptanceCriteria.map((c) => `- [ ] ${c}`).join('\n')}
               <>
                 <div className="flex justify-between items-center">
                   <h2 className="text-xl font-bold text-white">{prd.title}</h2>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadAsMarkdown(prdToMarkdown(prd), 'prd.md')}
-                    className="border-slate-700"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Descargar MD
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowExportMenu(!showExportMenu)}
+                      className="border-slate-700"
+                    >
+                      <FileDown className="w-4 h-4 mr-2" />
+                      Exportar
+                      <ChevronDown className="w-4 h-4 ml-2" />
+                    </Button>
+                    {showExportMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-10">
+                        <button
+                          onClick={handleExportPDF}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 rounded-t-lg"
+                        >
+                          <Printer className="w-4 h-4" />
+                          Imprimir / PDF
+                        </button>
+                        <button
+                          onClick={handleExportHTML}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Descargar HTML
+                        </button>
+                        <button
+                          onClick={handleExportMD}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 rounded-b-lg"
+                        >
+                          <Download className="w-4 h-4" />
+                          Descargar Markdown
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-6">
@@ -363,11 +528,11 @@ ${s.acceptanceCriteria.map((c) => `- [ ] ${c}`).join('\n')}
                 <Users className="w-12 h-12 text-slate-600 mx-auto mb-4" />
                 <p className="text-slate-400 mb-4">No hay user stories generadas</p>
                 <Button
-                  onClick={onGenerateStories}
+                  onClick={handleGenerateStories}
                   disabled={isLoading}
                   className="bg-purple-600 hover:bg-purple-700"
                 >
-                  {isLoading ? (
+                  {loading === 'userStories' ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Generando...
@@ -447,11 +612,11 @@ ${s.acceptanceCriteria.map((c) => `- [ ] ${c}`).join('\n')}
                 <Code className="w-12 h-12 text-slate-600 mx-auto mb-4" />
                 <p className="text-slate-400 mb-4">No hay especificación técnica generada</p>
                 <Button
-                  onClick={onGenerateSpec}
+                  onClick={handleGenerateSpec}
                   disabled={isLoading}
                   className="bg-purple-600 hover:bg-purple-700"
                 >
-                  {isLoading ? (
+                  {loading === 'technicalSpec' ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Generando...

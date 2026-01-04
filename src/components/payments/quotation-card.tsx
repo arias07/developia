@@ -116,7 +116,7 @@ NOTAS
 ${quotation.notes.map((n) => `• ${n}`).join('\n')}
 
 ========================================
-Generado por DevelopIA
+Generado por Devvy
     `;
 
     const blob = new Blob([content], { type: 'text/plain' });

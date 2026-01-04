@@ -38,7 +38,7 @@ const content = {
         { label: 'Política de reembolso', href: '/refund' },
       ],
     },
-    rights: '© 2025 DevelopIA. Todos los derechos reservados.',
+    rights: '© 2025 Devvy. Todos los derechos reservados.',
   },
   en: {
     description: 'We transform ideas into functional software using artificial intelligence.',
@@ -70,7 +70,7 @@ const content = {
         { label: 'Refund Policy', href: '/refund' },
       ],
     },
-    rights: '© 2025 DevelopIA. All rights reserved.',
+    rights: '© 2025 Devvy. All rights reserved.',
   },
 };
 
@@ -85,13 +85,13 @@ export function Footer({ lang }: FooterProps) {
           <div className="lg:col-span-2">
             <Link href="/" className="inline-block mb-4">
               <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                DevelopIA
+                Devvy
               </span>
             </Link>
             <p className="text-slate-400 mb-6 max-w-xs">{t.description}</p>
             <div className="flex gap-4">
               <a
-                href="https://twitter.com/developia"
+                href="https://twitter.com/devvytech"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
@@ -99,7 +99,7 @@ export function Footer({ lang }: FooterProps) {
                 <Twitter className="w-5 h-5" />
               </a>
               <a
-                href="https://github.com/developia"
+                href="https://github.com/devvytech"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
@@ -107,7 +107,7 @@ export function Footer({ lang }: FooterProps) {
                 <Github className="w-5 h-5" />
               </a>
               <a
-                href="https://linkedin.com/company/developia"
+                href="https://linkedin.com/company/devvytech"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
@@ -115,7 +115,7 @@ export function Footer({ lang }: FooterProps) {
                 <Linkedin className="w-5 h-5" />
               </a>
               <a
-                href="mailto:hola@developia.com"
+                href="mailto:hola@devvy.tech"
                 className="w-10 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
               >
                 <Mail className="w-5 h-5" />

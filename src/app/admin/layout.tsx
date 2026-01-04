@@ -137,7 +137,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="h-16 flex items-center px-6 border-b border-slate-800">
         <Link href="/admin">
           <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-            DevelopIA
+            Devvy
           </span>
           <span className="ml-2 text-xs text-slate-500 uppercase tracking-wider">Admin</span>
         </Link>
