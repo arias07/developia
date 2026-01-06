@@ -47,7 +47,7 @@ const content = {
       testing: 'Testing & QA',
       deployment: 'Deployment',
       subtotal: 'Subtotal',
-      discount: 'Descuento IA',
+      discount: 'Descuento especial',
       total: 'Total estimado',
       timeline: 'Tiempo estimado',
       weeks: 'semanas',
@@ -94,7 +94,7 @@ const content = {
       testing: 'Testing & QA',
       deployment: 'Deployment',
       subtotal: 'Subtotal',
-      discount: 'AI Discount',
+      discount: 'Special Discount',
       total: 'Estimated total',
       timeline: 'Estimated time',
       weeks: 'weeks',
@@ -241,7 +241,7 @@ export function StepSummary({ lang }: StepSummaryProps) {
           <Sparkles className="w-12 h-12 text-purple-400" />
         </motion.div>
         <h2 className="text-xl font-semibold text-white mb-2">{t.generating}</h2>
-        <p className="text-slate-400">Analizando requerimientos con IA...</p>
+        <p className="text-slate-400">Analizando requerimientos...</p>
       </div>
     );
   }

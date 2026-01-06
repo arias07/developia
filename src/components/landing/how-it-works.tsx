@@ -15,7 +15,7 @@ const content = {
       {
         icon: MessageSquare,
         title: 'Cuéntanos tu idea',
-        description: 'Nuestro asistente IA te guía para definir exactamente qué necesitas. Sin jerga técnica.',
+        description: 'Nuestro algoritmo inteligente te guía para definir exactamente qué necesitas. Sin jerga técnica.',
       },
       {
         icon: FileText,
@@ -51,7 +51,7 @@ const content = {
       {
         icon: MessageSquare,
         title: 'Tell us your idea',
-        description: 'Our AI assistant guides you to define exactly what you need. No technical jargon.',
+        description: 'Our intelligent algorithm guides you to define exactly what you need. No technical jargon.',
       },
       {
         icon: FileText,
@@ -65,8 +65,8 @@ const content = {
       },
       {
         icon: Cpu,
-        title: 'AI builds it',
-        description: 'Our AI generates code, design, and features automatically.',
+        title: 'Our team builds it',
+        description: 'Our team generates code, design, and features using advanced technology.',
       },
       {
         icon: Rocket,

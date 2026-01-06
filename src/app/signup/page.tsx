@@ -129,7 +129,7 @@ export default function SignupPage() {
           </h1>
           <p className="text-slate-400 mb-8">
             Únete a cientos de emprendedores y empresas que ya están construyendo sus proyectos
-            con inteligencia artificial.
+            con nuestra tecnología avanzada.
           </p>
 
           <ul className="space-y-4">

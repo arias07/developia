@@ -59,7 +59,7 @@ const statusLabels: Record<string, string> = {
   quoted: 'Cotizado',
   paid: 'Pagado',
   in_progress: 'En desarrollo',
-  in_development: 'IA Desarrollando',
+  in_development: 'En construcción',
   deploying: 'Desplegando',
   review: 'En revisión',
   completed: 'Completado',
@@ -535,12 +535,12 @@ export default function ProjectDetailPage() {
                     <CardHeader>
                       <CardTitle className="text-white flex items-center gap-2">
                         <Zap className="w-5 h-5 text-yellow-400" />
-                        Generado con IA
+                        Generado Automáticamente
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <p className="text-slate-300 text-sm">
-                        Este proyecto fue desarrollado de forma autónoma por nuestra IA.
+                        Este proyecto fue desarrollado de forma autónoma por nuestro sistema.
                       </p>
                       {project.github_repo_url && (
                         <a

@@ -226,7 +226,7 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
                       }`}
                     >
                       {message.is_ai_generated
-                        ? 'Devvy Bot'
+                        ? 'Asistente Devvy'
                         : isOwnMessage
                         ? 'Tú'
                         : senderName}

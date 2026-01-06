@@ -139,7 +139,7 @@ export function CodeGenerator({ projectId, projectRequirements }: CodeGeneratorP
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-purple-400" />
-          Generador de Código con IA
+          Generador de Código Avanzado
         </CardTitle>
       </CardHeader>
       <CardContent>

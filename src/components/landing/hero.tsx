@@ -11,10 +11,10 @@ interface HeroProps {
 
 const content = {
   es: {
-    badge: 'Potenciado por Inteligencia Artificial',
+    badge: 'Tecnología de Última Generación',
     title: 'Transforma tu idea en',
     titleHighlight: 'software real',
-    subtitle: 'Describe tu proyecto y nuestra IA lo construye. Sin complicaciones, sin esperas interminables, sin sorpresas.',
+    subtitle: 'Describe tu proyecto y nuestro equipo lo construye con tecnología avanzada. Sin complicaciones, sin esperas interminables, sin sorpresas.',
     cta: 'Comenzar mi proyecto',
     ctaSecondary: 'Ver cómo funciona',
     stats: [
@@ -24,10 +24,10 @@ const content = {
     ],
   },
   en: {
-    badge: 'Powered by Artificial Intelligence',
+    badge: 'Cutting-Edge Technology',
     title: 'Transform your idea into',
     titleHighlight: 'real software',
-    subtitle: 'Describe your project and our AI builds it. No complications, no endless waits, no surprises.',
+    subtitle: 'Describe your project and our team builds it with advanced technology. No complications, no endless waits, no surprises.',
     cta: 'Start my project',
     ctaSecondary: 'See how it works',
     stats: [

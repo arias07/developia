@@ -9,7 +9,7 @@ interface FooterProps {
 
 const content = {
   es: {
-    description: 'Transformamos ideas en software funcional usando inteligencia artificial.',
+    description: 'Transformamos ideas en software funcional usando tecnología de vanguardia.',
     services: {
       title: 'Servicios',
       items: [
@@ -41,7 +41,7 @@ const content = {
     rights: '© 2025 Devvy. Todos los derechos reservados.',
   },
   en: {
-    description: 'We transform ideas into functional software using artificial intelligence.',
+    description: 'We transform ideas into functional software using cutting-edge technology.',
     services: {
       title: 'Services',
       items: [

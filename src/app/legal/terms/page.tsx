@@ -38,8 +38,8 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold text-white mb-4">2. Descripción del Servicio</h2>
             <p className="text-slate-300 mb-4">
-              Devvy ofrece servicios de desarrollo de software potenciados por inteligencia
-              artificial, incluyendo pero no limitado a:
+              Devvy ofrece servicios de desarrollo de software utilizando tecnología avanzada,
+              incluyendo pero no limitado a:
             </p>
             <ul className="list-disc list-inside text-slate-300 space-y-2">
               <li>Desarrollo de aplicaciones web y móviles</li>

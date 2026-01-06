@@ -43,7 +43,7 @@ const statusLabels: Record<string, string> = {
   quoted: 'Cotizado',
   paid: 'Pagado',
   in_progress: 'En desarrollo',
-  in_development: 'IA Desarrollando',
+  in_development: 'En construcción',
   deploying: 'Desplegando',
   review: 'En revisión',
   completed: 'Completado',

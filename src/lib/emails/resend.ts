@@ -121,12 +121,12 @@ export async function sendWelcomeEmail(email: string, name: string) {
       ¡Bienvenido a Devvy, ${name}! 🚀
     </h2>
     <p style="color: #cbd5e1; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-      Gracias por registrarte. Estás a un paso de crear proyectos increíbles con la ayuda de
-      inteligencia artificial.
+      Gracias por registrarte. Estás a un paso de crear proyectos increíbles con nuestra
+      tecnología avanzada.
     </p>
     <p style="color: #cbd5e1; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
       Para comenzar, inicia un nuevo proyecto y cuéntanos qué quieres construir.
-      Nuestro sistema de IA te guiará en cada paso.
+      Nuestro sistema te guiará en cada paso.
     </p>
     <div style="text-align: center; margin-top: 32px;">
       <a href="${process.env.NEXT_PUBLIC_APP_URL}/funnel"

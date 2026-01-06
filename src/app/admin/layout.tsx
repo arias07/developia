@@ -38,7 +38,7 @@ const menuItems = [
   { icon: Users, label: 'Clientes', href: '/admin/clients' },
   { icon: UserPlus, label: 'Equipo', href: '/admin/team' },
   { icon: DollarSign, label: 'Finanzas', href: '/admin/finances' },
-  { icon: Sparkles, label: 'Generador IA', href: '/admin/code-generator' },
+  { icon: Sparkles, label: 'Generador', href: '/admin/code-generator' },
   { icon: Calendar, label: 'Consultorías', href: '/admin/consultations' },
   { icon: MessageSquare, label: 'Mensajes', href: '/admin/messages' },
   { icon: FileText, label: 'Documentos', href: '/admin/documents' },

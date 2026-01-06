@@ -81,8 +81,8 @@ export default function PrivacyPage() {
                 Vercel (hosting)
               </li>
               <li>
-                <strong>Socios de IA:</strong> OpenAI y Anthropic (para generación de código y
-                documentos)
+                <strong>Socios tecnológicos:</strong> Proveedores de servicios de procesamiento
+                (para generación de código y documentos)
               </li>
               <li>
                 <strong>Autoridades legales:</strong> Cuando sea requerido por ley
