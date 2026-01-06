@@ -1,10 +1,19 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Server-side notification sender using service role
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Server-side notification sender using service role (lazy initialization)
+let supabaseClient: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      throw new Error('Supabase environment variables are not set');
+    }
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 export type NotificationType = 'payment' | 'project' | 'message' | 'consultation' | 'alert' | 'info';
 
@@ -35,7 +44,7 @@ export async function sendNotification({
   data = {},
 }: SendNotificationParams): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabase.from('notifications').insert({
+    const { error } = await getSupabase().from('notifications').insert({
       user_id: userId,
       title,
       message,
@@ -74,7 +83,7 @@ export async function sendBulkNotification({
       data,
     }));
 
-    const { error } = await supabase.from('notifications').insert(notifications);
+    const { error } = await getSupabase().from('notifications').insert(notifications);
 
     if (error) {
       console.error('Error sending bulk notifications:', error);
@@ -99,7 +108,7 @@ export async function notifyAdmins({
 }: Omit<SendNotificationParams, 'userId'>): Promise<{ success: boolean; error?: string }> {
   try {
     // Get all admin users
-    const { data: admins, error: fetchError } = await supabase
+    const { data: admins, error: fetchError } = await getSupabase()
       .from('profiles')
       .select('id')
       .in('role', ['admin', 'project_manager']);

@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe/client';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type Stripe from 'stripe';
 
-// Use service role for webhook (no user context)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Use service role for webhook (no user context) - lazy initialization
+let supabaseClient: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      throw new Error('Supabase environment variables are not set');
+    }
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -77,6 +86,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   }
 
   // Update payment status
+  const supabase = getSupabase();
   await supabase
     .from('payments')
     .update({
@@ -132,7 +142,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
 
 async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   // Update payment record if found by payment intent ID
-  await supabase
+  await getSupabase()
     .from('payments')
     .update({
       status: 'completed',
@@ -143,6 +153,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
 
 async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
   // Update payment record to failed
+  const supabase = getSupabase();
   await supabase
     .from('payments')
     .update({
@@ -167,7 +178,7 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
 async function handleRefund(charge: Stripe.Charge) {
   // Update payment record to refunded
   if (charge.payment_intent) {
-    await supabase
+    await getSupabase()
       .from('payments')
       .update({
         status: 'refunded',

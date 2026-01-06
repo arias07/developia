@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { developProject, type DevelopmentConfig } from '@/lib/agents/development-agent';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let supabaseClient: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      throw new Error('Supabase environment variables are not set');
+    }
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener los requerimientos del proyecto
+    const supabase = getSupabase();
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('*, project_requirements(*)')
@@ -129,6 +139,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const supabase = getSupabase();
     const { data: project, error } = await supabase
       .from('projects')
       .select('id, status, repository_url, deployment_url, metadata, updated_at')
