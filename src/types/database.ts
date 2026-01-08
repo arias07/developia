@@ -378,3 +378,167 @@ export interface ProjectMetadata {
   };
   generated_at?: string;
 }
+
+// ============================================
+// FICTIONAL TEAM MEMBERS (Shown to clients)
+// ============================================
+
+export type FictionalTeamRole = 'project_manager' | 'senior_developer' | 'junior_developer';
+
+export interface ProjectTeamMember {
+  id: string;
+  project_id: string;
+  display_name: string;
+  avatar_url?: string;
+  role: FictionalTeamRole;
+  title: string;
+  specializations: string[];
+  bio?: string;
+  internal_code: string;
+  assigned_at: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// ESCALATION SYSTEM (AI failures -> Human)
+// ============================================
+
+export type EscalationType =
+  | 'technical_failure'
+  | 'capacity_limit'
+  | 'quality_issue'
+  | 'client_request'
+  | 'timeout'
+  | 'external_api_failure';
+
+export type EscalationSeverity = 'critical' | 'high' | 'medium' | 'low';
+
+export type EscalationStatus = 'pending' | 'assigned' | 'in_progress' | 'resolved' | 'cancelled';
+
+export interface Escalation {
+  id: string;
+  project_id: string;
+  type: EscalationType;
+  severity: EscalationSeverity;
+  status: EscalationStatus;
+  error_message?: string;
+  error_stack?: string;
+  failed_phase?: string;
+  ai_attempts: number;
+  context_data?: Record<string, unknown>;
+  assigned_to?: string;
+  assigned_at?: string;
+  resolution_notes?: string;
+  resolution_data?: Record<string, unknown>;
+  resolved_at?: string;
+  resolved_by?: string;
+  email_sent: boolean;
+  whatsapp_sent: boolean;
+  app_notified: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EscalationWithDetails extends Escalation {
+  project_name: string;
+  project_type: ProjectType;
+  client_name: string;
+  client_email: string;
+  assigned_name?: string;
+  assigned_email?: string;
+}
+
+// ============================================
+// PROJECT ASSISTANTS (24/7 AI Support)
+// ============================================
+
+export interface ProjectAssistant {
+  id: string;
+  project_id: string;
+  assistant_name: string;
+  avatar_url?: string;
+  system_prompt: string;
+  model: string;
+  temperature: number;
+  max_tokens: number;
+  project_summary?: string;
+  tech_stack?: Record<string, unknown>;
+  features_list?: Array<{ name: string; description: string }>;
+  architecture_overview?: string;
+  known_issues?: Array<{ issue: string; workaround?: string }>;
+  faq?: Array<{ question: string; answer: string }>;
+  documentation_urls?: string[];
+  codebase_summary?: string;
+  api_endpoints?: Array<{ method: string; path: string; description: string }>;
+  can_reset_passwords: boolean;
+  can_clear_cache: boolean;
+  can_restart_service: boolean;
+  can_view_logs: boolean;
+  can_health_check: boolean;
+  vercel_project_id?: string;
+  supabase_project_ref?: string;
+  total_conversations: number;
+  total_messages: number;
+  total_actions_executed: number;
+  last_interaction?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AssistantMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  action?: {
+    type: string;
+    params?: Record<string, unknown>;
+    result?: Record<string, unknown>;
+    success?: boolean;
+  };
+}
+
+export interface AssistantConversation {
+  id: string;
+  project_id: string;
+  assistant_id: string;
+  user_id: string;
+  title?: string;
+  messages: AssistantMessage[];
+  started_at: string;
+  last_message_at: string;
+  message_count: number;
+  topics_discussed: string[];
+  actions_requested: string[];
+  actions_executed: string[];
+  satisfaction_rating?: number;
+  feedback_text?: string;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AssistantActionLog {
+  id: string;
+  assistant_id: string;
+  conversation_id?: string;
+  user_id: string;
+  action_type: string;
+  action_params?: Record<string, unknown>;
+  success: boolean;
+  result_data?: Record<string, unknown>;
+  error_message?: string;
+  started_at: string;
+  completed_at?: string;
+  duration_ms?: number;
+  created_at: string;
+}
+
+// Assistant allowed actions
+export type AssistantActionType =
+  | 'reset_password'
+  | 'clear_cache'
+  | 'restart_service'
+  | 'view_logs'
+  | 'health_check';

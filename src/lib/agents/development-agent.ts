@@ -13,7 +13,18 @@ import {
 } from '@/lib/integrations/supabase-generator';
 import { generateProjectStructure, generateComponent } from '@/lib/claude/code-generator';
 import { sendNotification } from '@/lib/notifications/send';
-import type { ProjectRequirements } from '@/types/database';
+import { EscalationManager } from '@/lib/escalation/escalation-manager';
+import { createProjectAssistant } from '@/lib/assistants/project-assistant-generator';
+import { createClient } from '@supabase/supabase-js';
+import type { ProjectRequirements, Project } from '@/types/database';
+
+// Supabase client for fetching project data
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 // ============================================
 // TIPOS
@@ -136,10 +147,40 @@ export class DevelopmentAgent {
         await this.sendCompletionNotification(result);
       }
 
+      // Create personalized assistant for the project
+      try {
+        const supabase = getSupabase();
+        const { data: projectData } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', this.config.projectId)
+          .single();
+
+        if (projectData) {
+          await createProjectAssistant({
+            projectId: this.config.projectId,
+            projectData: projectData as Project,
+            generatedFiles: this.generatedFiles,
+            deploymentUrl: result.deploymentUrl,
+            repositoryUrl: result.repositoryUrl,
+          });
+          console.log(`[DevelopmentAgent] Assistant created for project ${this.config.projectId}`);
+        }
+      } catch (assistantError) {
+        console.error('[DevelopmentAgent] Failed to create assistant:', assistantError);
+        // Don't fail the whole process if assistant creation fails
+      }
+
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.errors.push(errorMessage);
+
+      // Get current phase from timeline
+      const currentPhase = this.timeline.length > 0
+        ? this.timeline[this.timeline.length - 1].phase
+        : 'initializing';
 
       await this.updateProgress('failed', 0, `Error: ${errorMessage}`);
 
@@ -149,6 +190,19 @@ export class DevelopmentAgent {
       // Notificar error
       if (this.config.options.sendNotifications) {
         await this.sendErrorNotification(errorMessage);
+      }
+
+      // Create escalation for human intervention
+      try {
+        await EscalationManager.handleFailure(
+          this.config.projectId,
+          error instanceof Error ? error : new Error(errorMessage),
+          currentPhase,
+          1 // AI attempt count
+        );
+        console.log(`[DevelopmentAgent] Escalation created for project ${this.config.projectId}`);
+      } catch (escalationError) {
+        console.error('[DevelopmentAgent] Failed to create escalation:', escalationError);
       }
 
       return result;

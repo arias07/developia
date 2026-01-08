@@ -416,3 +416,151 @@ export async function sendProgressUpdateEmail(
     html: baseTemplate(content),
   });
 }
+
+// ============================================
+// GENERIC SEND EMAIL (for multi-channel)
+// ============================================
+
+export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  const result = await emailService.send(options);
+  return result !== null;
+}
+
+// ============================================
+// ESCALATION EMAIL
+// ============================================
+
+export interface EscalationEmailParams {
+  projectName: string;
+  severity: string;
+  type: string;
+  phase: string;
+  errorMessage: string;
+  escalationId: string;
+  clientEmail: string;
+}
+
+export async function sendEscalationEmail(
+  to: string,
+  params: EscalationEmailParams
+): Promise<boolean> {
+  const severityColors: Record<string, string> = {
+    critical: '#ef4444',
+    high: '#f97316',
+    medium: '#eab308',
+    low: '#3b82f6',
+  };
+
+  const severityEmojis: Record<string, string> = {
+    critical: '🚨',
+    high: '⚠️',
+    medium: '📋',
+    low: 'ℹ️',
+  };
+
+  const color = severityColors[params.severity] || '#64748b';
+  const emoji = severityEmojis[params.severity] || '📋';
+
+  const content = `
+    <h2 style="color: ${color}; font-size: 24px; margin: 0 0 16px 0;">
+      ${emoji} Escalación ${params.severity.toUpperCase()}
+    </h2>
+    <p style="color: #cbd5e1; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+      Se requiere intervención humana para el siguiente proyecto:
+    </p>
+
+    <div style="background-color: #0f172a; border-radius: 8px; padding: 20px; margin: 24px 0; border-left: 4px solid ${color};">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="color: #94a3b8; padding: 8px 0; width: 120px;">Proyecto:</td>
+          <td style="color: #ffffff; padding: 8px 0; font-weight: 600;">${params.projectName}</td>
+        </tr>
+        <tr>
+          <td style="color: #94a3b8; padding: 8px 0;">Tipo:</td>
+          <td style="color: #ffffff; padding: 8px 0;">${params.type}</td>
+        </tr>
+        <tr>
+          <td style="color: #94a3b8; padding: 8px 0;">Fase:</td>
+          <td style="color: #ffffff; padding: 8px 0;">${params.phase}</td>
+        </tr>
+        <tr>
+          <td style="color: #94a3b8; padding: 8px 0;">Cliente:</td>
+          <td style="color: #ffffff; padding: 8px 0;">${params.clientEmail}</td>
+        </tr>
+        <tr>
+          <td style="color: #94a3b8; padding: 8px 0;">ID:</td>
+          <td style="color: #64748b; padding: 8px 0; font-family: monospace; font-size: 12px;">${params.escalationId}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="background-color: #1a0a0a; border-radius: 8px; padding: 16px; margin: 24px 0; border: 1px solid #7f1d1d;">
+      <p style="color: #fca5a5; margin: 0 0 8px 0; font-size: 14px; font-weight: 600;">Error:</p>
+      <p style="color: #ffffff; margin: 0; font-family: monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word;">
+        ${params.errorMessage}
+      </p>
+    </div>
+
+    <div style="text-align: center; margin-top: 32px;">
+      <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/escalations"
+         style="display: inline-block; background-color: ${color}; color: white;
+                padding: 14px 32px; border-radius: 8px; text-decoration: none;
+                font-weight: 600; font-size: 16px;">
+        Ver Escalación
+      </a>
+    </div>
+  `;
+
+  const result = await emailService.send({
+    to,
+    subject: `${emoji} [${params.severity.toUpperCase()}] Escalación - ${params.projectName}`,
+    html: baseTemplate(content),
+  });
+
+  return result !== null;
+}
+
+// ============================================
+// EMAIL TEMPLATES OBJECT (for multi-channel)
+// ============================================
+
+export const EmailTemplates = {
+  escalationAlert: (params: EscalationEmailParams): string => {
+    const severityColors: Record<string, string> = {
+      critical: '#ef4444',
+      high: '#f97316',
+      medium: '#eab308',
+      low: '#3b82f6',
+    };
+
+    const color = severityColors[params.severity] || '#64748b';
+
+    return `
+      <h2 style="color: ${color}; font-size: 24px; margin: 0 0 16px 0;">
+        Escalación ${params.severity.toUpperCase()}
+      </h2>
+      <div style="background-color: #0f172a; border-radius: 8px; padding: 20px; margin: 24px 0; border-left: 4px solid ${color};">
+        <p><strong>Proyecto:</strong> ${params.projectName}</p>
+        <p><strong>Tipo:</strong> ${params.type}</p>
+        <p><strong>Fase:</strong> ${params.phase}</p>
+        <p><strong>Error:</strong> ${params.errorMessage}</p>
+        <p><strong>Cliente:</strong> ${params.clientEmail}</p>
+      </div>
+      <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/escalations">Ver en panel de admin</a></p>
+    `;
+  },
+
+  teamAssigned: (projectName: string, teamSize: number): string => `
+    <h2 style="color: #22c55e;">¡Tu equipo está listo!</h2>
+    <p>Un equipo de <strong>${teamSize} profesionales</strong> ha sido asignado a tu proyecto "${projectName}".</p>
+    <p>Incluye: 1 Project Manager, 1 Senior Developer, y 4 Developers.</p>
+    <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard">Ver equipo en el dashboard</a></p>
+  `,
+
+  assistantReady: (projectName: string, assistantName: string): string => `
+    <h2 style="color: #a855f7;">Tu asistente está listo</h2>
+    <p>El asistente <strong>${assistantName}</strong> está disponible 24/7 para ayudarte con "${projectName}".</p>
+    <p>Puede responder preguntas, ejecutar acciones básicas como resetear contraseñas, limpiar caché y más.</p>
+    <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard">Chatear con tu asistente</a></p>
+  `,
+};

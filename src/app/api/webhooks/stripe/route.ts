@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe/client';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type Stripe from 'stripe';
+import { assignFictionalTeam } from '@/lib/team/fictional-team-generator';
+import { notifyTeamAssignment } from '@/lib/notifications/multi-channel';
+import type { ProjectType } from '@/types/database';
 
 // Use service role for webhook (no user context) - lazy initialization
 let supabaseClient: SupabaseClient | null = null;
@@ -105,6 +108,39 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', projectId);
+
+    // Get project details for team assignment
+    const { data: project } = await supabase
+      .from('projects')
+      .select('name, type')
+      .eq('id', projectId)
+      .single();
+
+    if (project) {
+      // Assign fictional team to the project
+      try {
+        const team = await assignFictionalTeam({
+          projectId,
+          projectType: project.type as ProjectType,
+          projectName: project.name,
+        });
+
+        // Notify client about team assignment
+        if (team && team.length > 0) {
+          await notifyTeamAssignment(
+            clientId,
+            projectId,
+            project.name,
+            team.length
+          );
+
+          console.log(`[Webhook] Fictional team assigned to project ${projectId}: ${team.length} members`);
+        }
+      } catch (teamError) {
+        console.error('[Webhook] Error assigning fictional team:', teamError);
+        // Don't fail the webhook if team assignment fails
+      }
+    }
   }
 
   // Update milestone if applicable
