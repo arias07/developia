@@ -1,8 +1,9 @@
 // Multi-channel Notification System
-// Sends notifications via App (Supabase), Email (Resend), and WhatsApp (Twilio)
+// Sends notifications via App (Supabase), Email (Resend), WhatsApp (Twilio), and Telegram
 
 import { createClient } from '@supabase/supabase-js';
 import { sendWhatsAppAlert, WhatsAppTemplates } from './whatsapp';
+import { sendTelegramAlert, TelegramTemplates } from './telegram';
 import { sendEscalationEmail, sendEmail as sendEmailMessage, EmailTemplates } from '../emails/resend';
 import type { Escalation, EscalationSeverity } from '@/types/database';
 
@@ -27,6 +28,7 @@ export interface MultiChannelNotification {
   sendApp?: boolean;
   sendEmail?: boolean;
   sendWhatsApp?: boolean;
+  sendTelegram?: boolean;
 
   // App notification options
   type?: 'payment' | 'project' | 'message' | 'consultation' | 'alert' | 'info';
@@ -38,6 +40,9 @@ export interface MultiChannelNotification {
 
   // WhatsApp options
   whatsAppBody?: string;
+
+  // Telegram options
+  telegramText?: string;
 }
 
 /**
@@ -106,11 +111,13 @@ export async function sendMultiChannelNotification(
   app: boolean;
   email: boolean;
   whatsApp: boolean;
+  telegram: boolean;
 }> {
   const results = {
     app: false,
     email: false,
     whatsApp: false,
+    telegram: false,
   };
 
   const {
@@ -121,11 +128,13 @@ export async function sendMultiChannelNotification(
     sendApp = true,
     sendEmail = false,
     sendWhatsApp = false,
+    sendTelegram = false,
     type = 'info',
     data,
     emailSubject,
     emailHtml,
     whatsAppBody,
+    telegramText,
   } = notification;
 
   // Determine target users
@@ -187,6 +196,11 @@ export async function sendMultiChannelNotification(
     results.whatsApp = await sendWhatsAppAlert(whatsAppBody || `${title}\n\n${message}`);
   }
 
+  // Send Telegram notifications
+  if (sendTelegram) {
+    results.telegram = await sendTelegramAlert(telegramText || `<b>${title}</b>\n\n${message}`);
+  }
+
   return results;
 }
 
@@ -203,10 +217,10 @@ export interface EscalationNotificationParams {
 /**
  * Notify all channels about an escalation
  * Severity determines which channels are used:
- * - Critical: App + Email + WhatsApp
- * - High: App + Email + WhatsApp
- * - Medium: App + Email
- * - Low: App only
+ * - Critical: App + Email + WhatsApp + Telegram
+ * - High: App + Email + WhatsApp + Telegram
+ * - Medium: App + Email + Telegram
+ * - Low: App + Telegram
  */
 export async function notifyEscalation(
   params: EscalationNotificationParams
@@ -214,6 +228,7 @@ export async function notifyEscalation(
   app: boolean;
   email: boolean;
   whatsApp: boolean;
+  telegram: boolean;
 }> {
   const { escalation, projectName, clientEmail } = params;
 
@@ -221,11 +236,12 @@ export async function notifyEscalation(
     app: boolean;
     email: boolean;
     whatsApp: boolean;
+    telegram: boolean;
   }> = {
-    critical: { app: true, email: true, whatsApp: true },
-    high: { app: true, email: true, whatsApp: true },
-    medium: { app: true, email: true, whatsApp: false },
-    low: { app: true, email: false, whatsApp: false },
+    critical: { app: true, email: true, whatsApp: true, telegram: true },
+    high: { app: true, email: true, whatsApp: true, telegram: true },
+    medium: { app: true, email: true, whatsApp: false, telegram: true },
+    low: { app: true, email: false, whatsApp: false, telegram: true },
   };
 
   const channels = channelsBySeverity[escalation.severity];
@@ -267,6 +283,22 @@ export async function notifyEscalation(
     ).body;
   }
 
+  // Prepare Telegram message
+  let telegramText = '';
+  if (escalation.severity === 'critical') {
+    telegramText = TelegramTemplates.criticalEscalation(
+      projectName,
+      escalation.error_message || 'Error desconocido',
+      escalation.id
+    ).text;
+  } else {
+    telegramText = TelegramTemplates.highEscalation(
+      projectName,
+      escalation.failed_phase || 'Desarrollo',
+      escalation.id
+    ).text;
+  }
+
   const result = await sendMultiChannelNotification({
     title,
     message,
@@ -274,6 +306,7 @@ export async function notifyEscalation(
     sendApp: channels.app,
     sendEmail: channels.email,
     sendWhatsApp: channels.whatsApp,
+    sendTelegram: channels.telegram,
     type: 'alert',
     data: {
       escalationId: escalation.id,
@@ -283,6 +316,7 @@ export async function notifyEscalation(
     emailSubject: `[${escalation.severity.toUpperCase()}] Escalación - ${projectName}`,
     emailHtml,
     whatsAppBody,
+    telegramText,
   });
 
   // Update escalation record with notification status
@@ -316,6 +350,7 @@ export async function notifyTeamAssignment(
     sendApp: true,
     sendEmail: true,
     sendWhatsApp: false,
+    sendTelegram: true,
     type: 'project',
     data: { projectId, teamSize },
     emailSubject: `Equipo asignado - ${projectName}`,
@@ -330,6 +365,7 @@ export async function notifyTeamAssignment(
       </ul>
       <p>Accede a tu dashboard para ver los detalles del equipo.</p>
     `,
+    telegramText: `👥 <b>Equipo asignado</b>\n\nUn equipo de ${teamSize} profesionales ha sido asignado al proyecto "${projectName}".`,
   });
 
   return result.app && result.email;

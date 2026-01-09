@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sendWhatsAppAlert, WhatsAppTemplates } from '@/lib/notifications/whatsapp';
+import { sendTelegramAlert, TelegramTemplates } from '@/lib/notifications/telegram';
 import { notifyEscalation, notifyTeamAssignment } from '@/lib/notifications/multi-channel';
 import { EscalationManager } from '@/lib/escalation/escalation-manager';
 import { generateProjectTeam } from '@/lib/team/fictional-team-generator';
@@ -25,7 +26,17 @@ export async function POST(request: NextRequest) {
       }
 
       // =============================================
-      // TEST 2: Escalación crítica (todos los canales)
+      // TEST 2: Telegram directo
+      // =============================================
+      case 'telegram': {
+        const result = await sendTelegramAlert(
+          TelegramTemplates.test().text
+        );
+        return NextResponse.json({ success: result, action: 'telegram' });
+      }
+
+      // =============================================
+      // TEST 3: Escalación crítica (todos los canales)
       // =============================================
       case 'escalation': {
         const mockEscalation: Escalation = {
@@ -62,33 +73,31 @@ export async function POST(request: NextRequest) {
       }
 
       // =============================================
-      // TEST 3: Asignación de equipo
+      // TEST 4: Asignación de equipo
       // =============================================
       case 'team': {
-        const team = generateProjectTeam('saas');
-
-        // Simular notificación (sin guardar en DB)
-        const notifyResult = await notifyTeamAssignment(
-          'test-client-id',
-          'test-project-id',
-          'App de Prueba',
-          team.length
-        );
+        const team = await generateProjectTeam({
+          projectId: 'test-project-id',
+          projectType: 'saas',
+          projectName: 'App de Prueba',
+        });
 
         return NextResponse.json({
           success: true,
           action: 'team',
           team: team.map(m => ({
-            name: m.fullName,
+            name: m.display_name,
             role: m.role,
-            specialization: m.specialization,
+            title: m.title,
+            specializations: m.specializations,
+            bio: m.bio,
           })),
-          notified: notifyResult
+          teamSize: team.length
         });
       }
 
       // =============================================
-      // TEST 4: Templates de WhatsApp
+      // TEST 5: Templates de WhatsApp
       // =============================================
       case 'whatsapp-templates': {
         const templates = {
@@ -116,7 +125,35 @@ export async function POST(request: NextRequest) {
       }
 
       // =============================================
-      // TEST 5: Crear escalación real en DB
+      // TEST 6: Templates de Telegram
+      // =============================================
+      case 'telegram-templates': {
+        const templates = {
+          critical: TelegramTemplates.criticalEscalation(
+            'Proyecto Demo',
+            'Error de conexión a base de datos',
+            'ESC-001'
+          ),
+          payment: TelegramTemplates.paymentReceived(
+            'Proyecto Demo',
+            '$2,500 USD',
+            'Juan Pérez'
+          ),
+          completed: TelegramTemplates.projectCompleted(
+            'Proyecto Demo',
+            'https://proyecto-demo.vercel.app'
+          ),
+        };
+
+        return NextResponse.json({
+          success: true,
+          action: 'telegram-templates',
+          templates
+        });
+      }
+
+      // =============================================
+      // TEST 7: Crear escalación real en DB
       // =============================================
       case 'create-escalation': {
         const body = await request.json().catch(() => ({}));
@@ -146,10 +183,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           error: 'Acción no válida',
           availableActions: [
-            'whatsapp - Enviar WhatsApp de prueba',
-            'escalation - Simular notificación de escalación (sin DB)',
+            'whatsapp - Enviar WhatsApp de prueba (Twilio)',
+            'telegram - Enviar Telegram de prueba',
+            'escalation - Simular notificación de escalación (todos los canales)',
             'team - Generar equipo ficticio de prueba',
             'whatsapp-templates - Ver templates de WhatsApp',
+            'telegram-templates - Ver templates de Telegram',
             'create-escalation - Crear escalación real (requiere projectId)',
           ]
         }, { status: 400 });
@@ -170,11 +209,15 @@ export async function GET() {
     usage: 'POST /api/test/simulate?action=<acción>',
     actions: {
       whatsapp: {
-        description: 'Enviar mensaje de prueba por WhatsApp',
+        description: 'Enviar mensaje de prueba por WhatsApp (Twilio)',
         example: 'curl -X POST "http://localhost:3000/api/test/simulate?action=whatsapp"'
       },
+      telegram: {
+        description: 'Enviar mensaje de prueba por Telegram',
+        example: 'curl -X POST "http://localhost:3000/api/test/simulate?action=telegram"'
+      },
       escalation: {
-        description: 'Simular notificación de escalación crítica (App + Email + WhatsApp)',
+        description: 'Simular notificación de escalación crítica (App + Email + WhatsApp + Telegram)',
         example: 'curl -X POST "http://localhost:3000/api/test/simulate?action=escalation"'
       },
       team: {
@@ -184,6 +227,10 @@ export async function GET() {
       'whatsapp-templates': {
         description: 'Ver templates de mensajes WhatsApp',
         example: 'curl -X POST "http://localhost:3000/api/test/simulate?action=whatsapp-templates"'
+      },
+      'telegram-templates': {
+        description: 'Ver templates de mensajes Telegram',
+        example: 'curl -X POST "http://localhost:3000/api/test/simulate?action=telegram-templates"'
       },
       'create-escalation': {
         description: 'Crear escalación real en base de datos',

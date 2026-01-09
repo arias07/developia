@@ -9,7 +9,11 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const rawWhatsappFrom = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14155238886';
 const whatsappFrom = rawWhatsappFrom.startsWith('whatsapp:') ? rawWhatsappFrom : `whatsapp:${rawWhatsappFrom}`;
 const rawAdminWhatsapp = process.env.ADMIN_WHATSAPP_NUMBER;
-const adminWhatsapp = rawAdminWhatsapp?.startsWith('whatsapp:') ? rawAdminWhatsapp : rawAdminWhatsapp ? `whatsapp:${rawAdminWhatsapp}` : undefined;
+const adminWhatsapp = rawAdminWhatsapp?.startsWith('whatsapp:')
+  ? rawAdminWhatsapp
+  : rawAdminWhatsapp
+    ? `whatsapp:${rawAdminWhatsapp}`
+    : undefined;
 
 // Initialize Twilio client only if credentials are available
 function getTwilioClient() {
