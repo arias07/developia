@@ -42,21 +42,20 @@ export async function POST(request: NextRequest) {
         const mockEscalation: Escalation = {
           id: 'test-' + Date.now(),
           project_id: 'test-project-id',
-          type: 'development_failed',
+          type: 'technical_failure',
           severity: 'critical',
-          status: 'open',
+          status: 'pending',
           failed_phase: 'code_generation',
           error_message: 'TEST: Simulación de error crítico para verificar notificaciones',
-          retry_count: 3,
-          max_retries: 3,
-          assigned_to: null,
-          resolution_notes: null,
+          ai_attempts: 3,
+          assigned_to: undefined,
+          resolution_notes: undefined,
           app_notified: false,
           email_sent: false,
           whatsapp_sent: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          resolved_at: null,
+          resolved_at: undefined,
         };
 
         const result = await notifyEscalation({
