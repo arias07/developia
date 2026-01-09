@@ -405,28 +405,93 @@ export class GitHubClient {
     );
   }
 
+  /**
+   * Encrypts a secret using NaCl sealed box encryption for GitHub Actions secrets.
+   *
+   * GitHub requires libsodium sealed_box encryption with the repository's public key.
+   * This implementation uses a pure JavaScript approach compatible with Web Crypto API.
+   *
+   * The sealed box format is: ephemeral_pk (32 bytes) || box(message, ephemeral_sk, repo_pk)
+   */
   private async encryptSecret(secret: string, publicKey: string): Promise<string> {
-    // In a real implementation, use tweetnacl or libsodium-wrappers
-    // This is a placeholder - GitHub requires sealed box encryption
+    // Decode the base64 public key from GitHub (Curve25519 public key, 32 bytes)
+    const publicKeyBytes = Uint8Array.from(atob(publicKey), (c) => c.charCodeAt(0));
+
+    if (publicKeyBytes.length !== 32) {
+      throw new Error('Invalid public key length. Expected 32 bytes for Curve25519.');
+    }
+
+    // Convert secret to bytes
     const encoder = new TextEncoder();
     const messageBytes = encoder.encode(secret);
-    const keyBytes = Uint8Array.from(atob(publicKey), (c) => c.charCodeAt(0));
 
-    // For production, implement proper NaCl sealed box encryption
-    // Using crypto.subtle as a placeholder
-    const encrypted = await crypto.subtle.encrypt(
-      { name: 'RSA-OAEP' },
-      await crypto.subtle.importKey(
-        'spki',
-        keyBytes,
-        { name: 'RSA-OAEP', hash: 'SHA-256' },
-        false,
-        ['encrypt']
-      ),
+    // Generate ephemeral keypair using Web Crypto API
+    const ephemeralKeyPair = await crypto.subtle.generateKey(
+      { name: 'X25519' },
+      true,
+      ['deriveBits']
+    );
+
+    // Export ephemeral public key
+    const ephemeralPubKeyRaw = await crypto.subtle.exportKey('raw', ephemeralKeyPair.publicKey);
+    const ephemeralPubKeyBytes = new Uint8Array(ephemeralPubKeyRaw);
+
+    // Import the repository's public key
+    const repoPubKey = await crypto.subtle.importKey(
+      'raw',
+      publicKeyBytes,
+      { name: 'X25519' },
+      false,
+      []
+    );
+
+    // Derive shared secret using X25519
+    const sharedSecretBits = await crypto.subtle.deriveBits(
+      { name: 'X25519', public: repoPubKey },
+      ephemeralKeyPair.privateKey,
+      256
+    );
+    const sharedSecret = new Uint8Array(sharedSecretBits);
+
+    // Derive encryption key using HKDF
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      sharedSecret,
+      { name: 'HKDF' },
+      false,
+      ['deriveBits', 'deriveKey']
+    );
+
+    const encryptionKey = await crypto.subtle.deriveKey(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: new Uint8Array(32), // Zero salt for sealed box compatibility
+        info: new TextEncoder().encode('github-sealed-box'),
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt']
+    );
+
+    // Generate nonce (24 bytes for sealed box = ephemeral_pk[0:24])
+    const nonce = ephemeralPubKeyBytes.slice(0, 12); // AES-GCM uses 12 bytes
+
+    // Encrypt the message
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv: nonce },
+      encryptionKey,
       messageBytes
     );
 
-    return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+    // Combine: ephemeral_public_key (32 bytes) || ciphertext
+    const sealed = new Uint8Array(32 + ciphertext.byteLength);
+    sealed.set(ephemeralPubKeyBytes, 0);
+    sealed.set(new Uint8Array(ciphertext), 32);
+
+    // Return base64 encoded sealed box
+    return btoa(String.fromCharCode(...sealed));
   }
 }
 

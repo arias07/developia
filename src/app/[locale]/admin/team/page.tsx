@@ -39,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import type { Profile, TeamMember, UserRole } from '@/types/database';
 
 interface TeamMemberWithProfile extends TeamMember {
@@ -76,8 +77,10 @@ const availabilityLabels: Record<string, string> = {
 };
 
 export default function AdminTeamPage() {
+  const { toast } = useToast();
   const [teamMembers, setTeamMembers] = useState<TeamMemberWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [inviting, setInviting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newMember, setNewMember] = useState({
@@ -118,14 +121,72 @@ export default function AdminTeamPage() {
   );
 
   const handleInviteMember = async () => {
-    // TODO: In a real implementation, this would send an invite email
-    setIsDialogOpen(false);
-    setNewMember({
-      email: '',
-      role: 'developer',
-      specializations: '',
-      hourly_rate: '',
-    });
+    if (!newMember.email) return;
+
+    setInviting(true);
+    try {
+      const supabase = getSupabaseClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        toast({
+          title: 'Error',
+          description: 'No hay sesión activa',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const response = await fetch('/api/admin/team/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          email: newMember.email,
+          role: newMember.role,
+          specializations: newMember.specializations,
+          hourlyRate: newMember.hourly_rate,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast({
+          title: 'Error',
+          description: data.error || 'No se pudo enviar la invitación',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Invitación enviada',
+        description: data.emailSent
+          ? `Se envió un correo a ${newMember.email}`
+          : 'Invitación creada (el correo no pudo enviarse)',
+      });
+
+      setIsDialogOpen(false);
+      setNewMember({
+        email: '',
+        role: 'developer',
+        specializations: '',
+        hourly_rate: '',
+      });
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Ocurrió un error al enviar la invitación',
+        variant: 'destructive',
+      });
+    } finally {
+      setInviting(false);
+    }
   };
 
   return (
@@ -348,15 +409,20 @@ export default function AdminTeamPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-slate-700">
+            <Button
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+              className="border-slate-700"
+              disabled={inviting}
+            >
               Cancelar
             </Button>
             <Button
               onClick={handleInviteMember}
               className="bg-gradient-to-r from-purple-600 to-cyan-600"
-              disabled={!newMember.email}
+              disabled={!newMember.email || inviting}
             >
-              Enviar invitación
+              {inviting ? 'Enviando...' : 'Enviar invitación'}
             </Button>
           </DialogFooter>
         </DialogContent>

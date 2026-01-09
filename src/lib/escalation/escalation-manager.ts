@@ -552,21 +552,48 @@ export class EscalationManager {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [pending, assigned, inProgress, resolvedToday] = await Promise.all([
+    // Get last 30 days for avg resolution time calculation
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [pending, assigned, inProgress, resolvedToday, recentResolved] = await Promise.all([
       supabase.from('escalations').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('escalations').select('*', { count: 'exact', head: true }).eq('status', 'assigned'),
       supabase.from('escalations').select('*', { count: 'exact', head: true }).eq('status', 'in_progress'),
       supabase.from('escalations').select('*', { count: 'exact', head: true })
         .eq('status', 'resolved')
         .gte('resolved_at', today.toISOString()),
+      // Fetch resolved escalations with timestamps to calculate avg resolution time
+      supabase
+        .from('escalations')
+        .select('created_at, resolved_at')
+        .eq('status', 'resolved')
+        .not('resolved_at', 'is', null)
+        .gte('resolved_at', thirtyDaysAgo.toISOString())
+        .limit(100),
     ]);
+
+    // Calculate average resolution time in hours
+    let avgResolutionTime = 0;
+    if (recentResolved.data && recentResolved.data.length > 0) {
+      const totalHours = recentResolved.data.reduce((sum, escalation) => {
+        if (escalation.created_at && escalation.resolved_at) {
+          const created = new Date(escalation.created_at).getTime();
+          const resolved = new Date(escalation.resolved_at).getTime();
+          const diffHours = (resolved - created) / (1000 * 60 * 60);
+          return sum + diffHours;
+        }
+        return sum;
+      }, 0);
+      avgResolutionTime = Math.round((totalHours / recentResolved.data.length) * 10) / 10;
+    }
 
     return {
       pending: pending.count || 0,
       assigned: assigned.count || 0,
       inProgress: inProgress.count || 0,
       resolvedToday: resolvedToday.count || 0,
-      avgResolutionTime: 0, // TODO: Calculate from resolved escalations
+      avgResolutionTime,
     };
   }
 }

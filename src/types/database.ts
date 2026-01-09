@@ -736,3 +736,26 @@ export interface FreelancerReview {
   created_at: string;
   updated_at: string;
 }
+
+// ============================================
+// TEAM INVITES
+// ============================================
+
+export type TeamInviteStatus = 'pending' | 'accepted' | 'expired' | 'cancelled';
+
+export interface TeamInvite {
+  id: string;
+  email: string;
+  role: UserRole;
+  specializations: string[];
+  hourly_rate?: number;
+  invite_token: string;
+  status: TeamInviteStatus;
+  invited_by?: string;
+  accepted_by?: string;
+  team_member_id?: string;
+  expires_at: string;
+  accepted_at?: string;
+  created_at: string;
+  updated_at: string;
+}

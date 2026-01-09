@@ -68,61 +68,161 @@ export default function AdminAnalyticsPage() {
     const fetchAnalytics = async () => {
       const supabase = getSupabaseClient();
 
+      // Calculate date range based on period
+      const now = new Date();
+      let startDate: Date;
+      switch (period) {
+        case '7d':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '90d':
+          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case '1y':
+          startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+          break;
+        default: // 30d
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      }
+      const previousStartDate = new Date(startDate.getTime() - (now.getTime() - startDate.getTime()));
+
       // Fetch projects
       const { data: projects } = await supabase.from('projects').select('*');
 
-      // Fetch clients
+      // Fetch clients with created_at to determine new vs returning
       const { data: clients } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, created_at')
         .eq('role', 'client');
 
       // Fetch funnel sessions
-      const { data: funnelSessions } = await supabase.from('funnel_sessions').select('*');
+      const { data: funnelSessions } = await supabase
+        .from('funnel_sessions')
+        .select('*')
+        .gte('created_at', startDate.toISOString());
 
-      // Fetch payments
-      const { data: payments } = await supabase
+      // Fetch payments for current period
+      const { data: currentPayments } = await supabase
         .from('payments')
         .select('*')
-        .eq('status', 'completed');
+        .eq('status', 'completed')
+        .gte('paid_at', startDate.toISOString());
+
+      // Fetch payments for previous period (for growth calculation)
+      const { data: previousPayments } = await supabase
+        .from('payments')
+        .select('amount')
+        .eq('status', 'completed')
+        .gte('paid_at', previousStartDate.toISOString())
+        .lt('paid_at', startDate.toISOString());
+
+      // Fetch all completed payments for monthly breakdown
+      const { data: allPayments } = await supabase
+        .from('payments')
+        .select('amount, paid_at')
+        .eq('status', 'completed')
+        .not('paid_at', 'is', null)
+        .order('paid_at', { ascending: true });
+
+      // Fetch clients with multiple projects (returning clients)
+      const { data: clientProjects } = await supabase
+        .from('projects')
+        .select('client_id')
+        .in('status', ['completed', 'in_progress', 'review', 'paid']);
 
       if (projects && clients) {
         const completed = projects.filter((p: any) => p.status === 'completed');
         const inProgress = projects.filter((p: any) =>
           ['in_progress', 'review', 'paid'].includes(p.status)
         );
-        const totalRevenue = payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
 
-        // Calculate funnel data
+        const currentRevenue = currentPayments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
+        const previousRevenue = previousPayments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
+
+        // Calculate real growth percentage
+        const growth = previousRevenue > 0
+          ? Math.round(((currentRevenue - previousRevenue) / previousRevenue) * 1000) / 10
+          : currentRevenue > 0 ? 100 : 0;
+
+        // Calculate funnel data from real sessions
         const funnelVisits = funnelSessions?.length || 0;
         const funnelStarted = funnelSessions?.filter((s: any) => s.max_step_reached > 1).length || 0;
-        const funnelCompleted =
-          funnelSessions?.filter((s: any) => s.converted_to_project_id).length || 0;
+        const funnelCompleted = funnelSessions?.filter((s: any) => s.converted_to_project_id).length || 0;
         const funnelPaid = projects.filter((p: any) =>
           ['paid', 'in_progress', 'review', 'completed'].includes(p.status)
         ).length;
 
-        // Get top projects by revenue
-        const topProjects = [...projects]
-          .sort((a: any, b: any) => (b.estimated_price || 0) - (a.estimated_price || 0))
-          .slice(0, 5)
-          .map((p: any) => ({
-            name: p.name,
-            revenue: p.estimated_price || 0,
-            type: p.type,
-          }));
+        // Get top projects by actual payment revenue
+        const projectRevenue: Record<string, { name: string; revenue: number; type: string }> = {};
+        if (currentPayments) {
+          for (const payment of currentPayments) {
+            const project = projects.find((p: any) => p.id === payment.project_id);
+            if (project) {
+              if (!projectRevenue[project.id]) {
+                projectRevenue[project.id] = { name: project.name, revenue: 0, type: project.type || 'custom' };
+              }
+              projectRevenue[project.id].revenue += payment.amount || 0;
+            }
+          }
+        }
+        const topProjects = Object.values(projectRevenue)
+          .sort((a, b) => b.revenue - a.revenue)
+          .slice(0, 5);
 
-        // Calculate monthly revenue (mock data for now)
-        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
-        const byMonth = months.map((month, i) => ({
-          month,
-          amount: Math.floor(totalRevenue * (0.1 + Math.random() * 0.2)),
-        }));
+        // Calculate real monthly revenue from payments
+        const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const monthlyRevenue: Record<string, number> = {};
+
+        // Initialize last 6 months
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date();
+          d.setMonth(d.getMonth() - i);
+          const key = `${d.getFullYear()}-${d.getMonth()}`;
+          monthlyRevenue[key] = 0;
+        }
+
+        // Aggregate payments by month
+        if (allPayments) {
+          for (const payment of allPayments) {
+            if (payment.paid_at) {
+              const d = new Date(payment.paid_at);
+              const key = `${d.getFullYear()}-${d.getMonth()}`;
+              if (key in monthlyRevenue) {
+                monthlyRevenue[key] += payment.amount || 0;
+              }
+            }
+          }
+        }
+
+        const byMonth = Object.entries(monthlyRevenue).map(([key, amount]) => {
+          const [year, month] = key.split('-').map(Number);
+          return { month: monthNames[month], amount };
+        });
+
+        // Calculate new vs returning clients
+        const newClients = clients.filter((c: any) =>
+          new Date(c.created_at) >= startDate
+        ).length;
+
+        // Count clients with multiple projects as returning
+        const clientProjectCounts: Record<string, number> = {};
+        if (clientProjects) {
+          for (const cp of clientProjects) {
+            clientProjectCounts[cp.client_id] = (clientProjectCounts[cp.client_id] || 0) + 1;
+          }
+        }
+        const returningClients = Object.values(clientProjectCounts).filter(count => count > 1).length;
+
+        // Calculate retention rate (returning / total with projects)
+        const clientsWithProjects = Object.keys(clientProjectCounts).length;
+        const retention = clientsWithProjects > 0
+          ? Math.round((returningClients / clientsWithProjects) * 100)
+          : 0;
 
         setData({
           revenue: {
-            total: totalRevenue,
-            growth: 15.3,
+            total: currentRevenue,
+            growth,
             byMonth,
           },
           projects: {
@@ -134,15 +234,15 @@ export default function AdminAnalyticsPage() {
           },
           clients: {
             total: clients.length,
-            new: Math.floor(clients.length * 0.3),
-            returning: Math.floor(clients.length * 0.7),
-            retention: 78,
+            new: newClients,
+            returning: returningClients,
+            retention,
           },
           funnel: {
-            visits: funnelVisits || 100,
-            started: funnelStarted || 45,
-            completed: funnelCompleted || 20,
-            paid: funnelPaid || 15,
+            visits: funnelVisits,
+            started: funnelStarted,
+            completed: funnelCompleted,
+            paid: funnelPaid,
           },
           topProjects,
         });
@@ -200,9 +300,13 @@ export default function AdminAnalyticsPage() {
                 <div className="p-3 rounded-xl bg-green-500/10">
                   <DollarSign className="w-6 h-6 text-green-400" />
                 </div>
-                <div className="flex items-center gap-1 text-green-400 text-sm">
-                  <TrendingUp className="w-4 h-4" />
-                  {data.revenue.growth}%
+                <div className={`flex items-center gap-1 text-sm ${data.revenue.growth >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {data.revenue.growth >= 0 ? (
+                    <TrendingUp className="w-4 h-4" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4" />
+                  )}
+                  {data.revenue.growth >= 0 ? '+' : ''}{data.revenue.growth}%
                 </div>
               </div>
               <p className="text-sm text-slate-400">Ingresos totales</p>

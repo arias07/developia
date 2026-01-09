@@ -526,6 +526,103 @@ export async function sendEscalationEmail(
 // EMAIL TEMPLATES OBJECT (for multi-channel)
 // ============================================
 
+// ============================================
+// TEAM INVITE EMAIL
+// ============================================
+
+export interface TeamInviteParams {
+  email: string;
+  role: string;
+  specializations?: string[];
+  hourlyRate?: number;
+  inviteToken: string;
+  invitedBy?: string;
+}
+
+export async function sendTeamInviteEmail(params: TeamInviteParams): Promise<boolean> {
+  const roleLabels: Record<string, string> = {
+    admin: 'Administrador',
+    project_manager: 'Project Manager',
+    developer: 'Desarrollador',
+    designer: 'Diseñador',
+    consultant: 'Consultor',
+    freelancer: 'Freelancer',
+  };
+
+  const roleName = roleLabels[params.role] || params.role;
+  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/accept?token=${params.inviteToken}`;
+
+  const content = `
+    <h2 style="color: #ffffff; font-size: 24px; margin: 0 0 16px 0;">
+      ¡Te invitamos a unirte a Devvy! 👋
+    </h2>
+    <p style="color: #cbd5e1; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+      Has sido invitado a unirte a nuestro equipo de profesionales en Devvy.
+    </p>
+
+    <div style="background-color: #0f172a; border-radius: 8px; padding: 24px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="color: #94a3b8; padding: 8px 0;">Rol asignado:</td>
+          <td style="color: #a855f7; text-align: right; padding: 8px 0; font-weight: 600;">
+            ${roleName}
+          </td>
+        </tr>
+        ${
+          params.specializations && params.specializations.length > 0
+            ? `
+        <tr>
+          <td style="color: #94a3b8; padding: 8px 0;">Especialidades:</td>
+          <td style="color: #ffffff; text-align: right; padding: 8px 0;">
+            ${params.specializations.join(', ')}
+          </td>
+        </tr>
+        `
+            : ''
+        }
+        ${
+          params.hourlyRate
+            ? `
+        <tr>
+          <td style="color: #94a3b8; padding: 8px 0;">Tarifa propuesta:</td>
+          <td style="color: #22c55e; text-align: right; padding: 8px 0; font-weight: 600;">
+            $${params.hourlyRate}/hora
+          </td>
+        </tr>
+        `
+            : ''
+        }
+      </table>
+    </div>
+
+    <p style="color: #cbd5e1; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+      Al unirte, tendrás acceso a proyectos de alta calidad y trabajarás con un equipo
+      de desarrollo de primer nivel.
+    </p>
+
+    <div style="text-align: center; margin-top: 32px;">
+      <a href="${inviteUrl}"
+         style="display: inline-block; background-color: #a855f7; color: white;
+                padding: 14px 32px; border-radius: 8px; text-decoration: none;
+                font-weight: 600; font-size: 16px;">
+        Aceptar Invitación
+      </a>
+    </div>
+
+    <p style="color: #64748b; font-size: 12px; text-align: center; margin-top: 24px;">
+      Esta invitación expira en 7 días. Si no reconoces esta invitación, puedes ignorar este correo.
+    </p>
+  `;
+
+  const result = await emailService.send({
+    to: params.email,
+    subject: `¡Estás invitado a unirte a Devvy como ${roleName}! 🚀`,
+    html: baseTemplate(content),
+  });
+
+  return result !== null;
+}
+
 export const EmailTemplates = {
   escalationAlert: (params: EscalationEmailParams): string => {
     const severityColors: Record<string, string> = {

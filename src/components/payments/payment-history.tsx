@@ -15,6 +15,7 @@ import {
   Receipt,
 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { InvoiceViewer } from './invoice-viewer';
 
 interface Payment {
   id: string;
@@ -222,6 +223,17 @@ export function PaymentHistory({ projectId }: PaymentHistoryProps) {
                         {formatCurrency(payment.amount, payment.currency)}
                       </span>
 
+                      <InvoiceViewer paymentId={payment.id}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-slate-600 text-slate-300 hover:text-white"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Factura
+                        </Button>
+                      </InvoiceViewer>
+
                       {payment.stripe_invoice_id && (
                         <Button
                           variant="outline"
@@ -235,7 +247,7 @@ export function PaymentHistory({ projectId }: PaymentHistoryProps) {
                             rel="noopener noreferrer"
                           >
                             <ExternalLink className="w-4 h-4 mr-2" />
-                            Factura
+                            Stripe
                           </a>
                         </Button>
                       )}
