@@ -57,20 +57,24 @@ async function sendAppNotification(
 ): Promise<boolean> {
   const supabase = getSupabase();
 
+  console.log('[App] Sending notification to user:', userId);
+
   const { error } = await supabase.from('notifications').insert({
     user_id: userId,
     title,
-    message,
+    content: message, // La tabla tiene 'content' NOT NULL (original schema)
+    message,          // También tiene 'message' NOT NULL (migración 002)
     type,
     data,
     read: false,
   });
 
   if (error) {
-    console.error('[App] Error sending notification:', error);
+    console.error('[App] Error sending notification:', error.message, error.details);
     return false;
   }
 
+  console.log('[App] Notification sent successfully');
   return true;
 }
 

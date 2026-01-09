@@ -10,7 +10,8 @@
 -- =============================================
 DO $$
 DECLARE
-    admin_user_id UUID := 'TU_USER_ID_AQUI'; -- Reemplazar con tu UUID de auth.users
+     -- Reemplazar con tu UUID de auth.users
+    admin_user_id UUID := '94205853-4ef2-4bd1-8c40-8e0193d59616';
     admin_email TEXT := 'israelarifra@gmail.com';
 
     -- Variables para IDs generados
@@ -27,7 +28,7 @@ SET
     role = 'admin',
     full_name = 'Israel Arias',
     phone = '+5213311219239',
-    company = 'Developia',
+    company = 'Devvy',
     onboarding_completed = true
 WHERE id = admin_user_id;
 
@@ -38,7 +39,7 @@ ON CONFLICT (id) DO UPDATE SET
     role = 'admin',
     full_name = 'Israel Arias',
     phone = '+5213311219239',
-    company = 'Developia',
+    company = 'Devvy',
     onboarding_completed = true;
 
 -- =============================================
@@ -170,11 +171,11 @@ INSERT INTO project_team_members (
 -- =============================================
 -- 7. CREAR NOTIFICACIONES
 -- =============================================
-INSERT INTO notifications (user_id, title, message, type, data, read) VALUES
-(admin_user_id, '¡Bienvenido a Developia!', 'Tu cuenta ha sido configurada correctamente. Explora el dashboard para comenzar.', 'info', '{"action": "welcome"}', false),
-(admin_user_id, 'Proyecto completado', 'El proyecto "Landing Page - TechStartup" ha sido desplegado exitosamente.', 'project', '{"projectId": "' || project_demo_id || '"}', true),
-(admin_user_id, 'Equipo asignado', 'Un equipo de 6 profesionales ha sido asignado al proyecto "SaaS - Gestión de Inventarios".', 'project', '{"projectId": "' || project_saas_id || '", "teamSize": 6}', false),
-(admin_user_id, 'Milestone completado', 'El milestone "Autenticación y Multi-tenancy" ha sido completado.', 'project', '{"projectId": "' || project_saas_id || '"}', false);
+INSERT INTO notifications (user_id, title, content, message, type, data, read) VALUES
+(admin_user_id, '¡Bienvenido a Devvy!', 'Tu cuenta ha sido configurada correctamente. Explora el dashboard para comenzar.', 'Tu cuenta ha sido configurada correctamente. Explora el dashboard para comenzar.', 'info', '{"action": "welcome"}'::jsonb, false),
+(admin_user_id, 'Proyecto completado', 'El proyecto "Landing Page - TechStartup" ha sido desplegado exitosamente.', 'El proyecto "Landing Page - TechStartup" ha sido desplegado exitosamente.', 'project', jsonb_build_object('projectId', project_demo_id), true),
+(admin_user_id, 'Equipo asignado', 'Un equipo de 6 profesionales ha sido asignado al proyecto "SaaS - Gestión de Inventarios".', 'Un equipo de 6 profesionales ha sido asignado al proyecto "SaaS - Gestión de Inventarios".', 'project', jsonb_build_object('projectId', project_saas_id, 'teamSize', 6), false),
+(admin_user_id, 'Milestone completado', 'El milestone "Autenticación y Multi-tenancy" ha sido completado.', 'El milestone "Autenticación y Multi-tenancy" ha sido completado.', 'project', jsonb_build_object('projectId', project_saas_id), false);
 
 -- =============================================
 -- 8. LOG DE ACTIVIDAD

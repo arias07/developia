@@ -85,7 +85,7 @@ export function FunnelLayout({ children, lang }: FunnelLayoutProps) {
 
             {/* Exit button */}
             <div className="w-24 flex justify-end">
-              <Link href="/">
+              <Link href="/dashboard">
                 <Button
                   variant="ghost"
                   size="sm"

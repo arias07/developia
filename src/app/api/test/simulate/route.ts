@@ -178,10 +178,44 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // =============================================
+      // TEST 8: Diagnóstico de configuración
+      // =============================================
+      case 'diagnose': {
+        const config = {
+          telegram: {
+            botToken: process.env.TELEGRAM_BOT_TOKEN ? '✅ Configurado' : '❌ Falta TELEGRAM_BOT_TOKEN',
+            adminChatId: process.env.TELEGRAM_ADMIN_CHAT_ID ? '✅ Configurado' : '❌ Falta TELEGRAM_ADMIN_CHAT_ID',
+          },
+          whatsapp: {
+            accountSid: process.env.TWILIO_ACCOUNT_SID ? '✅ Configurado' : '❌ Falta TWILIO_ACCOUNT_SID',
+            authToken: process.env.TWILIO_AUTH_TOKEN ? '✅ Configurado' : '❌ Falta TWILIO_AUTH_TOKEN',
+            fromNumber: process.env.TWILIO_WHATSAPP_NUMBER ? '✅ Configurado' : '❌ Falta TWILIO_WHATSAPP_NUMBER',
+            adminNumber: process.env.ADMIN_WHATSAPP_NUMBER ? '✅ Configurado' : '❌ Falta ADMIN_WHATSAPP_NUMBER',
+          },
+          email: {
+            resendApiKey: process.env.RESEND_API_KEY ? '✅ Configurado' : '❌ Falta RESEND_API_KEY',
+            adminEmail: process.env.ADMIN_EMAIL || 'israelarifra@gmail.com',
+          },
+          supabase: {
+            url: process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ Configurado' : '❌ Falta NEXT_PUBLIC_SUPABASE_URL',
+            serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configurado' : '❌ Falta SUPABASE_SERVICE_ROLE_KEY',
+          },
+        };
+
+        return NextResponse.json({
+          success: true,
+          action: 'diagnose',
+          config,
+          note: 'Si alguna configuración falta, las notificaciones de ese canal fallarán silenciosamente.'
+        });
+      }
+
       default:
         return NextResponse.json({
           error: 'Acción no válida',
           availableActions: [
+            'diagnose - Ver estado de configuración de notificaciones',
             'whatsapp - Enviar WhatsApp de prueba (Twilio)',
             'telegram - Enviar Telegram de prueba',
             'escalation - Simular notificación de escalación (todos los canales)',
