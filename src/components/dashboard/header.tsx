@@ -1,6 +1,7 @@
 'use client';
 
 import { Search, Plus } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NotificationBell } from '@/components/notifications/notification-bell';
-import Link from 'next/link';
+import { LocalizedLink, LanguageSwitcher } from '@/components/i18n';
 import type { Profile } from '@/types/database';
 
 interface HeaderProps {
@@ -21,7 +22,27 @@ interface HeaderProps {
   onLogout: () => void;
 }
 
+const headerLabels: Record<string, Record<string, string>> = {
+  es: {
+    search: 'Buscar proyectos, documentos...',
+    newProject: 'Nuevo proyecto',
+    settings: 'Configuración',
+    help: 'Ayuda',
+    logout: 'Cerrar sesión',
+  },
+  en: {
+    search: 'Search projects, documents...',
+    newProject: 'New project',
+    settings: 'Settings',
+    help: 'Help',
+    logout: 'Sign out',
+  },
+};
+
 export function Header({ profile, onLogout }: HeaderProps) {
+  const locale = useLocale();
+  const labels = headerLabels[locale] || headerLabels.es;
+
   const initials = profile?.full_name
     ?.split(' ')
     .map((n) => n[0])
@@ -36,7 +57,7 @@ export function Header({ profile, onLogout }: HeaderProps) {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <Input
-            placeholder="Buscar proyectos, documentos..."
+            placeholder={labels.search}
             className="pl-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 w-full"
           />
         </div>
@@ -45,12 +66,15 @@ export function Header({ profile, onLogout }: HeaderProps) {
       {/* Actions */}
       <div className="flex items-center gap-4">
         {/* New project button */}
-        <Link href="/funnel">
+        <LocalizedLink href="/funnel">
           <Button className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700">
             <Plus className="w-4 h-4 mr-2" />
-            Nuevo proyecto
+            {labels.newProject}
           </Button>
-        </Link>
+        </LocalizedLink>
+
+        {/* Language switcher */}
+        <LanguageSwitcher />
 
         {/* Notifications */}
         <NotificationBell />
@@ -74,21 +98,21 @@ export function Header({ profile, onLogout }: HeaderProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-slate-700" />
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings" className="text-slate-300 hover:text-white cursor-pointer">
-                Configuración
-              </Link>
+              <LocalizedLink href="/dashboard/settings" className="text-slate-300 hover:text-white cursor-pointer">
+                {labels.settings}
+              </LocalizedLink>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/help" className="text-slate-300 hover:text-white cursor-pointer">
-                Ayuda
-              </Link>
+              <LocalizedLink href="/help" className="text-slate-300 hover:text-white cursor-pointer">
+                {labels.help}
+              </LocalizedLink>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-slate-700" />
             <DropdownMenuItem
               onClick={onLogout}
               className="text-red-400 hover:text-red-300 cursor-pointer"
             >
-              Cerrar sesión
+              {labels.logout}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

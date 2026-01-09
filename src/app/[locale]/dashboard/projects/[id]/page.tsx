@@ -38,6 +38,7 @@ import { ProjectChat } from '@/components/chat/project-chat';
 import { PaymentHistory } from '@/components/payments/payment-history';
 import { ProgressTimeline } from '@/components/projects/progress-timeline';
 import { ReviewPanel } from '@/components/reviews/review-panel';
+import { ProjectTeam } from '@/components/projects/project-team';
 
 const statusColors: Record<string, string> = {
   draft: 'bg-slate-500',
@@ -334,6 +335,13 @@ export default function ProjectDetailPage() {
                 Pagos
               </TabsTrigger>
               <TabsTrigger
+                value="team"
+                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Equipo
+              </TabsTrigger>
+              <TabsTrigger
                 value="reviews"
                 className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
               >
@@ -595,6 +603,11 @@ export default function ProjectDetailPage() {
             {/* Payments Tab */}
             <TabsContent value="payments">
               <PaymentHistory projectId={projectId} />
+            </TabsContent>
+
+            {/* Team Tab */}
+            <TabsContent value="team">
+              <ProjectTeam projectId={projectId} />
             </TabsContent>
 
             {/* Reviews Tab */}

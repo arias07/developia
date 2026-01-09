@@ -1,14 +1,12 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
   FolderKanban,
-  MessageSquare,
-  FileText,
-  CreditCard,
+  Bell,
   Settings,
   HelpCircle,
   LogOut,
@@ -16,29 +14,56 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { LocalizedLink } from '@/components/i18n';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: FolderKanban, label: 'Proyectos', href: '/dashboard/projects' },
-  { icon: MessageSquare, label: 'Mensajes', href: '/dashboard/messages' },
-  { icon: FileText, label: 'Documentos', href: '/dashboard/documents' },
-  { icon: CreditCard, label: 'Pagos', href: '/dashboard/billing' },
-  { icon: Settings, label: 'Configuración', href: '/dashboard/settings' },
+  { icon: LayoutDashboard, labelKey: 'dashboard', href: '/dashboard' },
+  { icon: FolderKanban, labelKey: 'projects', href: '/dashboard/projects' },
+  { icon: Bell, labelKey: 'notifications', href: '/dashboard/notifications' },
+  { icon: Settings, labelKey: 'settings', href: '/dashboard/settings' },
 ];
 
 const bottomItems = [
-  { icon: HelpCircle, label: 'Ayuda', href: '/help' },
+  { icon: HelpCircle, labelKey: 'help', href: '/help' },
 ];
 
 interface SidebarProps {
   onLogout: () => void;
 }
 
+const sidebarLabels: Record<string, Record<string, string>> = {
+  es: {
+    dashboard: 'Dashboard',
+    projects: 'Proyectos',
+    notifications: 'Notificaciones',
+    settings: 'Configuración',
+    help: 'Ayuda',
+    logout: 'Cerrar sesión',
+  },
+  en: {
+    dashboard: 'Dashboard',
+    projects: 'Projects',
+    notifications: 'Notifications',
+    settings: 'Settings',
+    help: 'Help',
+    logout: 'Sign out',
+  },
+};
+
 export function Sidebar({ onLogout }: SidebarProps) {
   const pathname = usePathname();
+  const locale = useLocale();
   const [collapsed, setCollapsed] = useState(false);
+
+  const labels = sidebarLabels[locale] || sidebarLabels.es;
+
+  // Check if path matches (accounting for locale prefix)
+  const isActivePath = (href: string) => {
+    const localizedHref = `/${locale}${href}`;
+    return pathname === localizedHref || pathname.startsWith(`${localizedHref}/`);
+  };
 
   return (
     <motion.aside
@@ -49,11 +74,11 @@ export function Sidebar({ onLogout }: SidebarProps) {
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
         {!collapsed && (
-          <Link href="/">
+          <LocalizedLink href="/">
             <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
               Devvy
             </span>
-          </Link>
+          </LocalizedLink>
         )}
         <Button
           variant="ghost"
@@ -68,9 +93,9 @@ export function Sidebar({ onLogout }: SidebarProps) {
       {/* Main nav */}
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive = isActivePath(item.href);
           return (
-            <Link key={item.href} href={item.href}>
+            <LocalizedLink key={item.href} href={item.href}>
               <div
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all',
@@ -80,9 +105,9 @@ export function Sidebar({ onLogout }: SidebarProps) {
                 )}
               >
                 <item.icon className="w-5 h-5 shrink-0" />
-                {!collapsed && <span className="font-medium">{item.label}</span>}
+                {!collapsed && <span className="font-medium">{labels[item.labelKey]}</span>}
               </div>
-            </Link>
+            </LocalizedLink>
           );
         })}
       </nav>
@@ -90,19 +115,19 @@ export function Sidebar({ onLogout }: SidebarProps) {
       {/* Bottom nav */}
       <div className="py-4 px-2 border-t border-slate-800 space-y-1">
         {bottomItems.map((item) => (
-          <Link key={item.href} href={item.href}>
+          <LocalizedLink key={item.href} href={item.href}>
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
               <item.icon className="w-5 h-5 shrink-0" />
-              {!collapsed && <span className="font-medium">{item.label}</span>}
+              {!collapsed && <span className="font-medium">{labels[item.labelKey]}</span>}
             </div>
-          </Link>
+          </LocalizedLink>
         ))}
         <button
           onClick={onLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
         >
           <LogOut className="w-5 h-5 shrink-0" />
-          {!collapsed && <span className="font-medium">Cerrar sesión</span>}
+          {!collapsed && <span className="font-medium">{labels.logout}</span>}
         </button>
       </div>
     </motion.aside>

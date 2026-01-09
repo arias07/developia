@@ -111,9 +111,22 @@ export default function DashboardPage() {
       {/* Welcome section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">
-            ¡Hola, {profile?.full_name?.split(' ')[0] || 'Usuario'}!
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-white">
+              ¡Hola, {profile?.full_name?.split(' ')[0] || 'Usuario'}!
+            </h1>
+            {profile?.role && profile.role !== 'client' && (
+              <Badge className={`${
+                profile.role === 'admin' ? 'bg-red-500' :
+                profile.role === 'project_manager' ? 'bg-purple-500' :
+                'bg-blue-500'
+              } text-white border-none text-xs`}>
+                {profile.role === 'admin' ? 'Admin' :
+                 profile.role === 'project_manager' ? 'PM' :
+                 profile.role}
+              </Badge>
+            )}
+          </div>
           <p className="text-slate-400">Aquí está el resumen de tus proyectos</p>
         </div>
         <Link href="/funnel">
