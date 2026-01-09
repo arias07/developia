@@ -542,3 +542,197 @@ export type AssistantActionType =
   | 'restart_service'
   | 'view_logs'
   | 'health_check';
+
+// ============================================
+// FREELANCER SYSTEM
+// ============================================
+
+export type FreelancerStatus = 'pending' | 'approved' | 'rejected' | 'suspended' | 'inactive';
+export type FreelancerAvailability = 'available' | 'busy' | 'unavailable';
+export type FreelancerApplicationStatus = 'pending' | 'reviewing' | 'interview' | 'approved' | 'rejected';
+export type FreelancerAssignmentStatus = 'pending' | 'active' | 'paused' | 'completed' | 'cancelled';
+export type FreelancerTaskStatus = 'pending' | 'accepted' | 'in_progress' | 'review' | 'completed' | 'rejected' | 'cancelled';
+export type FreelancerTaskType = 'development' | 'bugfix' | 'review' | 'design' | 'consultation' | 'other';
+export type FreelancerPaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+export type FreelancerTimeLogStatus = 'logged' | 'approved' | 'rejected' | 'paid';
+
+export interface FreelancerProfile {
+  id: string;
+  user_id?: string;
+  full_name: string;
+  email: string;
+  phone?: string;
+  avatar_url?: string;
+  country?: string;
+  city?: string;
+  timezone: string;
+  title?: string;
+  bio?: string;
+  years_experience: number;
+  hourly_rate?: number;
+  currency: string;
+  primary_skills: string[];
+  secondary_skills: string[];
+  specializations: string[];
+  languages: string[];
+  portfolio_url?: string;
+  github_url?: string;
+  linkedin_url?: string;
+  resume_url?: string;
+  status: FreelancerStatus;
+  availability: FreelancerAvailability;
+  weekly_hours_available: number;
+  total_projects_completed: number;
+  total_tasks_completed: number;
+  average_rating: number;
+  total_reviews: number;
+  total_earnings: number;
+  internal_notes?: string;
+  approved_by?: string;
+  approved_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FreelancerApplicationRecord {
+  id: string;
+  email: string;
+  full_name: string;
+  phone?: string;
+  country?: string;
+  city?: string;
+  title?: string;
+  bio?: string;
+  years_experience?: number;
+  expected_hourly_rate?: number;
+  primary_skills: string[];
+  secondary_skills: string[];
+  specializations: string[];
+  languages: string[];
+  portfolio_url?: string;
+  github_url?: string;
+  linkedin_url?: string;
+  resume_url?: string;
+  cover_letter?: string;
+  availability?: string;
+  weekly_hours_available?: number;
+  start_date?: string;
+  referral_source?: string;
+  referral_code?: string;
+  status: FreelancerApplicationStatus;
+  rejection_reason?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  interview_scheduled_at?: string;
+  interview_notes?: string;
+  freelancer_id?: string;
+  converted_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FreelancerAssignment {
+  id: string;
+  freelancer_id: string;
+  project_id: string;
+  role: string;
+  assigned_team_member_id?: string;
+  status: FreelancerAssignmentStatus;
+  estimated_hours?: number;
+  actual_hours: number;
+  hourly_rate?: number;
+  budget_cap?: number;
+  started_at?: string;
+  completed_at?: string;
+  deadline?: string;
+  assignment_notes?: string;
+  completion_notes?: string;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  project?: Project;
+}
+
+export interface FreelancerTask {
+  id: string;
+  assignment_id: string;
+  freelancer_id: string;
+  project_id: string;
+  escalation_id?: string;
+  ticket_id?: string;
+  milestone_id?: string;
+  title: string;
+  description?: string;
+  type: FreelancerTaskType;
+  priority: TaskPriority;
+  status: FreelancerTaskStatus;
+  estimated_hours?: number;
+  actual_hours: number;
+  fixed_amount?: number;
+  hourly_rate?: number;
+  total_paid: number;
+  accepted_at?: string;
+  started_at?: string;
+  completed_at?: string;
+  deadline?: string;
+  deliverable_url?: string;
+  deliverable_notes?: string;
+  review_rating?: number;
+  review_comment?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  project?: Project;
+  assignment?: FreelancerAssignment;
+}
+
+export interface FreelancerTimeLog {
+  id: string;
+  freelancer_id: string;
+  task_id: string;
+  started_at: string;
+  ended_at?: string;
+  duration_minutes?: number;
+  description?: string;
+  status: FreelancerTimeLogStatus;
+  approved_by?: string;
+  approved_at?: string;
+  created_at: string;
+}
+
+export interface FreelancerPayment {
+  id: string;
+  freelancer_id: string;
+  amount: number;
+  currency: string;
+  period_start?: string;
+  period_end?: string;
+  task_ids: string[];
+  time_log_ids: string[];
+  payment_method?: string;
+  payment_reference?: string;
+  status: FreelancerPaymentStatus;
+  processed_by?: string;
+  processed_at?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FreelancerReview {
+  id: string;
+  freelancer_id: string;
+  project_id: string;
+  reviewer_id: string;
+  overall_rating: number;
+  quality_rating?: number;
+  communication_rating?: number;
+  timeliness_rating?: number;
+  title?: string;
+  comment?: string;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+}

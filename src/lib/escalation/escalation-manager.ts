@@ -8,6 +8,8 @@ import type {
   EscalationType,
   EscalationSeverity,
   EscalationStatus,
+  FreelancerProfile,
+  FreelancerTask,
 } from '@/types/database';
 
 // Supabase client for server-side operations
@@ -378,6 +380,160 @@ export class EscalationManager {
     }
 
     return data as Escalation[];
+  }
+
+  /**
+   * Assign escalation to a freelancer and create a task
+   */
+  static async assignToFreelancer(
+    escalationId: string,
+    freelancerId: string,
+    taskDetails: {
+      title: string;
+      description?: string;
+      priority?: 'low' | 'medium' | 'high' | 'urgent';
+      estimatedHours?: number;
+      deadline?: string;
+      hourlyRate?: number;
+      fixedAmount?: number;
+    }
+  ): Promise<FreelancerTask | null> {
+    const supabase = getSupabase();
+
+    // Get escalation details
+    const { data: escalation, error: escError } = await supabase
+      .from('escalations')
+      .select('*, project_id')
+      .eq('id', escalationId)
+      .single();
+
+    if (escError || !escalation) {
+      console.error('Error fetching escalation:', escError);
+      return null;
+    }
+
+    // Get freelancer profile
+    const { data: freelancer, error: freelancerError } = await supabase
+      .from('freelancer_profiles')
+      .select('*')
+      .eq('id', freelancerId)
+      .single();
+
+    if (freelancerError || !freelancer) {
+      console.error('Error fetching freelancer:', freelancerError);
+      return null;
+    }
+
+    // Check if freelancer has an active assignment for this project
+    let { data: assignment } = await supabase
+      .from('freelancer_assignments')
+      .select('id')
+      .eq('freelancer_id', freelancerId)
+      .eq('project_id', escalation.project_id)
+      .eq('status', 'active')
+      .single();
+
+    // If no assignment exists, create one
+    if (!assignment) {
+      const { data: newAssignment, error: assignError } = await supabase
+        .from('freelancer_assignments')
+        .insert({
+          freelancer_id: freelancerId,
+          project_id: escalation.project_id,
+          role: 'developer',
+          status: 'active',
+          hourly_rate: taskDetails.hourlyRate || freelancer.hourly_rate,
+          started_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (assignError || !newAssignment) {
+        console.error('Error creating assignment:', assignError);
+        return null;
+      }
+      assignment = newAssignment;
+    }
+
+    // Create task from escalation
+    const { data: task, error: taskError } = await supabase
+      .from('freelancer_tasks')
+      .insert({
+        assignment_id: assignment!.id,
+        freelancer_id: freelancerId,
+        project_id: escalation.project_id,
+        escalation_id: escalationId,
+        title: taskDetails.title,
+        description: taskDetails.description || escalation.error_message,
+        type: 'bugfix',
+        priority: taskDetails.priority || 'high',
+        status: 'pending',
+        estimated_hours: taskDetails.estimatedHours,
+        hourly_rate: taskDetails.hourlyRate || freelancer.hourly_rate,
+        fixed_amount: taskDetails.fixedAmount,
+        deadline: taskDetails.deadline,
+      })
+      .select()
+      .single();
+
+    if (taskError) {
+      console.error('Error creating task:', taskError);
+      return null;
+    }
+
+    // Update escalation status
+    await supabase
+      .from('escalations')
+      .update({
+        status: 'assigned',
+        assigned_to: freelancer.user_id,
+        assigned_at: new Date().toISOString(),
+      })
+      .eq('id', escalationId);
+
+    // Notify freelancer
+    if (freelancer.user_id) {
+      await supabase.from('notifications').insert({
+        user_id: freelancer.user_id,
+        title: 'Nueva tarea asignada',
+        message: `Se te ha asignado la tarea: ${taskDetails.title}`,
+        type: 'alert',
+        data: { taskId: task.id, escalationId },
+      });
+    }
+
+    console.log(`[Escalation] Assigned to freelancer ${freelancer.full_name} with task ${task.id}`);
+
+    return task as FreelancerTask;
+  }
+
+  /**
+   * Get available freelancers for assignment
+   */
+  static async getAvailableFreelancers(
+    skills?: string[]
+  ): Promise<FreelancerProfile[]> {
+    const supabase = getSupabase();
+
+    let query = supabase
+      .from('freelancer_profiles')
+      .select('*')
+      .eq('status', 'approved')
+      .eq('availability', 'available')
+      .order('average_rating', { ascending: false });
+
+    if (skills && skills.length > 0) {
+      query = query.overlaps('primary_skills', skills);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching available freelancers:', error);
+      return [];
+    }
+
+    return data as FreelancerProfile[];
   }
 
   /**

@@ -23,6 +23,8 @@ import {
   Bell,
   Menu,
   Sparkles,
+  AlertTriangle,
+  Briefcase,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -37,6 +39,8 @@ const menuItems = [
   { icon: FolderKanban, label: 'Proyectos', href: '/admin/projects' },
   { icon: Users, label: 'Clientes', href: '/admin/clients' },
   { icon: UserPlus, label: 'Equipo', href: '/admin/team' },
+  { icon: Briefcase, label: 'Freelancers', href: '/admin/freelancers' },
+  { icon: AlertTriangle, label: 'Escalaciones', href: '/admin/escalations' },
   { icon: DollarSign, label: 'Finanzas', href: '/admin/finances' },
   { icon: Sparkles, label: 'Generador', href: '/admin/code-generator' },
   { icon: Calendar, label: 'Consultorías', href: '/admin/consultations' },
