@@ -12,11 +12,13 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LocalizedLink } from '@/components/i18n';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { useAuthStore } from '@/stores/auth-store';
 
 const menuItems = [
   { icon: LayoutDashboard, labelKey: 'dashboard', href: '/dashboard' },
@@ -28,6 +30,8 @@ const menuItems = [
 const bottomItems = [
   { icon: HelpCircle, labelKey: 'help', href: '/help' },
 ];
+
+const adminRoles = ['admin', 'project_manager', 'developer', 'designer', 'consultant'];
 
 interface SidebarProps {
   onLogout: () => void;
@@ -41,6 +45,7 @@ const sidebarLabels: Record<string, Record<string, string>> = {
     settings: 'Configuración',
     help: 'Ayuda',
     logout: 'Cerrar sesión',
+    admin: 'Panel Admin',
   },
   en: {
     dashboard: 'Dashboard',
@@ -49,6 +54,7 @@ const sidebarLabels: Record<string, Record<string, string>> = {
     settings: 'Settings',
     help: 'Help',
     logout: 'Sign out',
+    admin: 'Admin Panel',
   },
 };
 
@@ -56,8 +62,10 @@ export function Sidebar({ onLogout }: SidebarProps) {
   const pathname = usePathname();
   const locale = useLocale();
   const [collapsed, setCollapsed] = useState(false);
+  const { profile } = useAuthStore();
 
   const labels = sidebarLabels[locale] || sidebarLabels.es;
+  const isAdmin = profile?.role && adminRoles.includes(profile.role);
 
   // Check if path matches (accounting for locale prefix)
   const isActivePath = (href: string) => {
@@ -122,6 +130,17 @@ export function Sidebar({ onLogout }: SidebarProps) {
             </div>
           </LocalizedLink>
         ))}
+
+        {/* Admin Panel Link - Only visible to admin roles */}
+        {isAdmin && (
+          <LocalizedLink href="/admin">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 transition-all">
+              <Shield className="w-5 h-5 shrink-0" />
+              {!collapsed && <span className="font-medium">{labels.admin}</span>}
+            </div>
+          </LocalizedLink>
+        )}
+
         <button
           onClick={onLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
