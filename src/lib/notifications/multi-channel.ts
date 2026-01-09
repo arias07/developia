@@ -3,7 +3,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { sendWhatsAppAlert, WhatsAppTemplates } from './whatsapp';
-import { sendEscalationEmail, sendEmail, EmailTemplates } from '../emails/resend';
+import { sendEscalationEmail, sendEmail as sendEmailMessage, EmailTemplates } from '../emails/resend';
 import type { Escalation, EscalationSeverity } from '@/types/database';
 
 // Supabase client for server-side operations
@@ -153,7 +153,7 @@ export async function sendMultiChannelNotification(
       if (adminOnly) {
         const emails = await getAdminEmails();
         for (const email of emails) {
-          await sendEmail({
+          await sendEmailMessage({
             to: email,
             subject: emailSubject || title,
             html: emailHtml || `<p>${message}</p>`,
@@ -169,7 +169,7 @@ export async function sendMultiChannelNotification(
           .single();
 
         if (user?.email) {
-          await sendEmail({
+          await sendEmailMessage({
             to: user.email,
             subject: emailSubject || title,
             html: emailHtml || `<p>${message}</p>`,

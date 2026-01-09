@@ -208,5 +208,5 @@ export function getRandomItems<T>(array: T[], count: number): T[] {
 export function getSpecializationsForProject(
   projectType: keyof typeof SPECIALIZATIONS
 ): string[] {
-  return SPECIALIZATIONS[projectType] || SPECIALIZATIONS.custom;
+  return [...(SPECIALIZATIONS[projectType] || SPECIALIZATIONS.custom)];
 }

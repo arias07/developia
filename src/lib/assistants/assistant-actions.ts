@@ -512,7 +512,7 @@ export function parseActionFromResponse(
   }
 
   // Look for [PARAMS: xxx] pattern
-  const paramsMatch = response.match(/\[PARAMS:\s*(.+?)\]/is);
+  const paramsMatch = response.match(/\[PARAMS:\s*([^\]]+)\]/i);
   let params: Record<string, unknown> | undefined;
 
   if (paramsMatch) {

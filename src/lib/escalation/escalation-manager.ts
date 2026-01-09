@@ -115,9 +115,21 @@ async function getProjectDetails(projectId: string): Promise<{
     return null;
   }
 
+  // Handle both array and object format from Supabase relations
+  const profiles = project.profiles as { email: string } | { email: string }[] | null;
+  let clientEmail = 'unknown@email.com';
+
+  if (profiles) {
+    if (Array.isArray(profiles) && profiles.length > 0) {
+      clientEmail = profiles[0].email;
+    } else if (!Array.isArray(profiles)) {
+      clientEmail = profiles.email;
+    }
+  }
+
   return {
     projectName: project.name,
-    clientEmail: (project.profiles as { email: string })?.email || 'unknown@email.com',
+    clientEmail,
   };
 }
 
