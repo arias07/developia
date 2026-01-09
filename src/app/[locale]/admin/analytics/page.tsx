@@ -87,26 +87,26 @@ export default function AdminAnalyticsPage() {
         .eq('status', 'completed');
 
       if (projects && clients) {
-        const completed = projects.filter((p) => p.status === 'completed');
-        const inProgress = projects.filter((p) =>
+        const completed = projects.filter((p: any) => p.status === 'completed');
+        const inProgress = projects.filter((p: any) =>
           ['in_progress', 'review', 'paid'].includes(p.status)
         );
-        const totalRevenue = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+        const totalRevenue = payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
 
         // Calculate funnel data
         const funnelVisits = funnelSessions?.length || 0;
         const funnelStarted = funnelSessions?.filter((s: any) => s.max_step_reached > 1).length || 0;
         const funnelCompleted =
           funnelSessions?.filter((s: any) => s.converted_to_project_id).length || 0;
-        const funnelPaid = projects.filter((p) =>
+        const funnelPaid = projects.filter((p: any) =>
           ['paid', 'in_progress', 'review', 'completed'].includes(p.status)
         ).length;
 
         // Get top projects by revenue
         const topProjects = [...projects]
-          .sort((a, b) => (b.estimated_price || 0) - (a.estimated_price || 0))
+          .sort((a: any, b: any) => (b.estimated_price || 0) - (a.estimated_price || 0))
           .slice(0, 5)
-          .map((p) => ({
+          .map((p: any) => ({
             name: p.name,
             revenue: p.estimated_price || 0,
             type: p.type,
