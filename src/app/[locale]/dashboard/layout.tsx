@@ -34,14 +34,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setUser(user);
 
       // Fetch profile
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        console.error('User ID:', user.id);
+      }
+
       if (profileData) {
+        console.log('Profile loaded:', profileData);
         setProfile(profileData as Profile);
+      } else {
+        console.warn('No profile data returned for user:', user.id);
       }
 
       setLoading(false);
