@@ -109,8 +109,8 @@ export default function AdminDocumentsPage() {
     if (data && !error) {
       const filesWithUrls = await Promise.all(
         data
-          .filter((item) => item.name && !item.id?.includes('/')) // Filter out folders
-          .map(async (file) => {
+          .filter((item: any) => item.name && !item.id?.includes('/')) // Filter out folders
+          .map(async (file: any) => {
             const {
               data: { publicUrl },
             } = supabase.storage.from(BUCKET_NAME).getPublicUrl(file.name);
