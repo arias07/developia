@@ -2,6 +2,8 @@
 // SISTEMA DE MONEDAS Y CONVERSIÓN
 // ============================================
 
+import { logger } from '@/lib/logger';
+
 export type CurrencyCode = 'USD' | 'MXN' | 'EUR' | 'COP' | 'ARS' | 'CLP' | 'PEN';
 
 export interface Currency {
@@ -142,7 +144,7 @@ interface ExchangeRateAPIResponse {
  */
 export async function fetchExchangeRates(apiKey?: string): Promise<Record<CurrencyCode, number>> {
   if (!apiKey) {
-    console.warn('No API key provided, using cached exchange rates');
+    logger.debug('No API key provided, using cached exchange rates', { service: 'currency' });
     return EXCHANGE_RATES;
   }
 
@@ -169,7 +171,7 @@ export async function fetchExchangeRates(apiKey?: string): Promise<Record<Curren
 
     return { ...EXCHANGE_RATES, ...rates };
   } catch (error) {
-    console.error('Error fetching exchange rates:', error);
+    logger.error('Error fetching exchange rates', error, { service: 'currency' });
     return EXCHANGE_RATES; // Fallback a tasas cacheadas
   }
 }

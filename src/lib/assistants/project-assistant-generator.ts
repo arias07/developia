@@ -4,6 +4,7 @@
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { buildAssistantPrompt, generateInitialFAQ } from './assistant-prompts';
+import { logger } from '@/lib/logger';
 import type { Project, ProjectAssistant, ProjectType } from '@/types/database';
 
 // Supabase client for server-side operations
@@ -62,7 +63,7 @@ El resumen debe ser claro, conciso y útil para ayudar a usuarios con preguntas 
     const textContent = response.content.find((c) => c.type === 'text');
     return textContent?.text || 'Proyecto de desarrollo de software personalizado.';
   } catch (error) {
-    console.error('Error generating project summary:', error);
+    logger.error('Error generating project summary', error);
     return `${project.name} - ${project.description || 'Proyecto de desarrollo de software.'}`;
   }
 }
@@ -102,7 +103,7 @@ La descripción debe ser técnicamente precisa pero entendible.`,
     const textContent = response.content.find((c) => c.type === 'text');
     return textContent?.text || 'Arquitectura estándar de Next.js con Supabase.';
   } catch (error) {
-    console.error('Error generating architecture overview:', error);
+    logger.error('Error generating architecture overview', error);
     return 'Arquitectura basada en Next.js para el frontend y Supabase para backend y base de datos.';
   }
 }
@@ -213,11 +214,11 @@ export async function createProjectAssistant(
     .single();
 
   if (existing) {
-    console.log(`Assistant already exists for project ${projectId}`);
+    logger.debug('Assistant already exists', { projectId });
     return existing as ProjectAssistant;
   }
 
-  console.log(`Creating assistant for project ${projectId}...`);
+  logger.info('Creating assistant', { projectId });
 
   // Generate all the assistant content
   const [summary, architecture] = await Promise.all([
@@ -279,11 +280,11 @@ export async function createProjectAssistant(
     .single();
 
   if (error) {
-    console.error('Error creating assistant:', error);
+    logger.error('Error creating assistant', error, { projectId });
     return null;
   }
 
-  console.log(`Assistant created for project ${projectId}: ${assistantName}`);
+  logger.audit('assistant_created', { projectId, assistantName });
 
   // Send notification to client
   await supabase.from('notifications').insert({
@@ -312,7 +313,7 @@ export async function getProjectAssistant(
     .single();
 
   if (error) {
-    console.error('Error fetching assistant:', error);
+    logger.error('Error fetching assistant', error, { projectId });
     return null;
   }
 
@@ -340,7 +341,7 @@ export async function updateAssistantKnowledge(
     .single();
 
   if (error) {
-    console.error('Error updating assistant:', error);
+    logger.error('Error updating assistant', error, { assistantId });
     return null;
   }
 

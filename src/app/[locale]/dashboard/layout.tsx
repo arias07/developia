@@ -40,16 +40,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .eq('id', user.id)
         .single();
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        console.error('User ID:', user.id);
-      }
-
       if (profileData) {
-        console.log('Profile loaded:', profileData);
         setProfile(profileData as Profile);
-      } else {
-        console.warn('No profile data returned for user:', user.id);
       }
 
       setLoading(false);

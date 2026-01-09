@@ -35,9 +35,7 @@ export function useRealtimeNotifications() {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (error) {
-      console.error('Error fetching notifications:', error);
-    } else if (data) {
+    if (!error && data) {
       setNotifications(data as Notification[]);
     }
 

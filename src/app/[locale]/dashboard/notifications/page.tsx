@@ -76,9 +76,7 @@ export default function NotificationsPage() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching notifications:', error);
-      } else {
+      if (!error && data) {
         setNotifications(data as Notification[]);
       }
       setLoading(false);

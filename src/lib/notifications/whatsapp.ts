@@ -2,6 +2,7 @@
 // For sending urgent notifications (escalations, critical errors)
 
 import Twilio from 'twilio';
+import { logger } from '@/lib/logger';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -18,7 +19,7 @@ const adminWhatsapp = rawAdminWhatsapp?.startsWith('whatsapp:')
 // Initialize Twilio client only if credentials are available
 function getTwilioClient() {
   if (!accountSid || !authToken) {
-    console.warn('Twilio credentials not configured. WhatsApp notifications disabled.');
+    logger.warn('Twilio credentials not configured', { service: 'whatsapp' });
     return null;
   }
   return Twilio(accountSid, authToken);
@@ -37,7 +38,6 @@ export async function sendWhatsAppMessage(message: WhatsAppMessage): Promise<boo
   const client = getTwilioClient();
 
   if (!client) {
-    console.log('[WhatsApp] Skipped (not configured):', message.body.substring(0, 50));
     return false;
   }
 
@@ -52,10 +52,10 @@ export async function sendWhatsAppMessage(message: WhatsAppMessage): Promise<boo
       ...(message.mediaUrl && { mediaUrl: [message.mediaUrl] }),
     });
 
-    console.log('[WhatsApp] Message sent:', result.sid);
+    logger.debug('WhatsApp message sent', { sid: result.sid });
     return true;
   } catch (error) {
-    console.error('[WhatsApp] Error sending message:', error);
+    logger.error('Error sending WhatsApp message', error, { service: 'whatsapp' });
     return false;
   }
 }
@@ -65,7 +65,7 @@ export async function sendWhatsAppMessage(message: WhatsAppMessage): Promise<boo
  */
 export async function sendWhatsAppAlert(body: string): Promise<boolean> {
   if (!adminWhatsapp) {
-    console.warn('[WhatsApp] Admin number not configured');
+    logger.warn('WhatsApp admin number not configured', { service: 'whatsapp' });
     return false;
   }
 

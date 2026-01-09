@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateDatabaseSchema } from '@/lib/claude/code-generator';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ result });
   } catch (error) {
-    console.error('Error generating database schema:', error);
+    logger.error('Error generating database schema', error, { route: 'generate/database' });
     return NextResponse.json(
       { error: 'Failed to generate database schema' },
       { status: 500 }

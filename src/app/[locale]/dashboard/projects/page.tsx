@@ -74,9 +74,7 @@ export default function ProjectsPage() {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching projects:', error);
-      } else {
+      if (!error && data) {
         setProjects(data as Project[]);
       }
       setLoading(false);

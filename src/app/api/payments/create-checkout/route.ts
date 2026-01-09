@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { createCheckoutSession } from '@/lib/stripe/checkout';
+import { logger } from '@/lib/logger';
+import { RateLimiters, getRequestIdentifier, rateLimitResponse, getRateLimitHeaders } from '@/lib/security/rate-limiter';
 
 export async function POST(request: NextRequest) {
+  // Rate limiting for payment endpoints
+  const identifier = getRequestIdentifier(request);
+  const rateLimit = RateLimiters.payment(identifier);
+
+  if (!rateLimit.allowed) {
+    return rateLimitResponse(rateLimit);
+  }
+
   try {
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -81,9 +91,17 @@ export async function POST(request: NextRequest) {
       milestone_id: milestoneId || null,
     });
 
-    return NextResponse.json({ url: session.url, sessionId: session.id });
+    const response = NextResponse.json({ url: session.url, sessionId: session.id });
+
+    // Add rate limit headers
+    const headers = getRateLimitHeaders(rateLimit);
+    Object.entries(headers).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+
+    return response;
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    logger.error('Error creating checkout session', error, { route: 'create-checkout' });
     return NextResponse.json(
       { error: 'Failed to create checkout session' },
       { status: 500 }

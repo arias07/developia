@@ -58,9 +58,8 @@ export function CodeGenerator({ projectId, projectRequirements }: CodeGeneratorP
       const data = await response.json();
       setGeneratedFiles(data.result);
       setActiveTab('files');
-    } catch (err) {
+    } catch {
       setError('Error generando código. Intenta de nuevo.');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -90,9 +89,8 @@ export function CodeGenerator({ projectId, projectRequirements }: CodeGeneratorP
       setProjectStructure(data.result);
       setGeneratedFiles(data.result.files || []);
       setActiveTab('structure');
-    } catch (err) {
+    } catch {
       setError('Error generando estructura. Intenta de nuevo.');
-      console.error(err);
     } finally {
       setLoading(false);
     }

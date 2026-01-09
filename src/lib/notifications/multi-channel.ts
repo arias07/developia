@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { sendWhatsAppAlert, WhatsAppTemplates } from './whatsapp';
 import { sendTelegramAlert, TelegramTemplates } from './telegram';
 import { sendEscalationEmail, sendEmail as sendEmailMessage, EmailTemplates } from '../emails/resend';
+import { logger } from '@/lib/logger';
 import type { Escalation, EscalationSeverity } from '@/types/database';
 
 // Supabase client for server-side operations
@@ -57,7 +58,7 @@ async function sendAppNotification(
 ): Promise<boolean> {
   const supabase = getSupabase();
 
-  console.log('[App] Sending notification to user:', userId);
+  logger.debug('Sending app notification', { userId });
 
   const { error } = await supabase.from('notifications').insert({
     user_id: userId,
@@ -70,11 +71,11 @@ async function sendAppNotification(
   });
 
   if (error) {
-    console.error('[App] Error sending notification:', error.message, error.details);
+    logger.error('Error sending app notification', error, { userId });
     return false;
   }
 
-  console.log('[App] Notification sent successfully');
+  logger.debug('App notification sent', { userId });
   return true;
 }
 
@@ -191,7 +192,7 @@ export async function sendMultiChannelNotification(
         }
       }
     } catch (error) {
-      console.error('[Email] Error:', error);
+      logger.error('Error sending email', error);
     }
   }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 // GET - Fetch user notifications
 export async function GET(request: NextRequest) {
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ notifications: data });
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    logger.error('Error fetching notifications', error, { route: 'notifications GET' });
     return NextResponse.json(
       { error: 'Failed to fetch notifications' },
       { status: 500 }
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ notification });
   } catch (error) {
-    console.error('Error creating notification:', error);
+    logger.error('Error creating notification', error, { route: 'notifications POST' });
     return NextResponse.json(
       { error: 'Failed to create notification' },
       { status: 500 }
@@ -195,7 +196,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error updating notifications:', error);
+    logger.error('Error updating notifications', error, { route: 'notifications PATCH' });
     return NextResponse.json(
       { error: 'Failed to update notifications' },
       { status: 500 }
@@ -252,7 +253,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting notification:', error);
+    logger.error('Error deleting notification', error, { route: 'notifications DELETE' });
     return NextResponse.json(
       { error: 'Failed to delete notification' },
       { status: 500 }

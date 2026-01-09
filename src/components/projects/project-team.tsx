@@ -52,9 +52,7 @@ export function ProjectTeam({ projectId }: ProjectTeamProps) {
         .eq('is_active', true)
         .order('role', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching team:', error);
-      } else {
+      if (!error && data) {
         setTeam(data as TeamMember[]);
       }
       setLoading(false);

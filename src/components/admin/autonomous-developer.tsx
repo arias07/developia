@@ -81,8 +81,8 @@ export function AutonomousDeveloper({ projectId, userId, projectName }: Autonomo
           }
         }
       }
-    } catch (error) {
-      console.error('Error fetching status:', error);
+    } catch {
+      // Silently fail status fetch
     }
   };
 
@@ -105,11 +105,10 @@ export function AutonomousDeveloper({ projectId, userId, projectName }: Autonomo
         setPollingInterval(interval);
         await fetchStatus();
       } else {
-        const error = await response.json();
-        alert(`Error: ${error.error}`);
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error}`);
       }
-    } catch (error) {
-      console.error('Error starting development:', error);
+    } catch {
       alert('Error al iniciar el desarrollo');
     } finally {
       setIsStarting(false);

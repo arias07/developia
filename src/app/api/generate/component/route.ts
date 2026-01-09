@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateComponent } from '@/lib/claude/code-generator';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ result });
   } catch (error) {
-    console.error('Error generating component:', error);
+    logger.error('Error generating component', error, { route: 'generate/component' });
     return NextResponse.json(
       { error: 'Failed to generate component' },
       { status: 500 }

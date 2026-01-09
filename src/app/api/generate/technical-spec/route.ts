@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateTechnicalSpec } from '@/lib/openai/prd-generator';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ technicalSpec });
   } catch (error) {
-    console.error('Error generating technical spec:', error);
+    logger.error('Error generating technical spec', error, { route: 'generate/technical-spec' });
     return NextResponse.json(
       { error: 'Failed to generate technical specification' },
       { status: 500 }

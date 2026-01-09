@@ -2,6 +2,8 @@
 // For sending instant notifications (escalations, alerts, updates)
 // Setup: Create a bot with @BotFather and get the token
 
+import { logger } from '@/lib/logger';
+
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
 
@@ -19,8 +21,7 @@ export interface TelegramMessage {
  */
 export async function sendTelegramMessage(message: TelegramMessage): Promise<boolean> {
   if (!botToken) {
-    console.warn('[Telegram] Bot token not configured. Telegram notifications disabled.');
-    console.log('[Telegram] Skipped:', message.text.substring(0, 50));
+    logger.warn('Telegram bot token not configured', { service: 'telegram' });
     return false;
   }
 
@@ -41,14 +42,14 @@ export async function sendTelegramMessage(message: TelegramMessage): Promise<boo
     const data = await response.json();
 
     if (!data.ok) {
-      console.error('[Telegram] API Error:', data);
+      logger.error('Telegram API error', new Error(JSON.stringify(data)), { service: 'telegram' });
       return false;
     }
 
-    console.log('[Telegram] Message sent:', data.result?.message_id);
+    logger.debug('Telegram message sent', { messageId: data.result?.message_id });
     return true;
   } catch (error) {
-    console.error('[Telegram] Error sending message:', error);
+    logger.error('Error sending Telegram message', error, { service: 'telegram' });
     return false;
   }
 }
@@ -58,7 +59,7 @@ export async function sendTelegramMessage(message: TelegramMessage): Promise<boo
  */
 export async function sendTelegramAlert(text: string): Promise<boolean> {
   if (!adminChatId) {
-    console.warn('[Telegram] Admin chat ID not configured');
+    logger.warn('Telegram admin chat ID not configured', { service: 'telegram' });
     return false;
   }
 

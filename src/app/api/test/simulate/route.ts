@@ -1,5 +1,5 @@
 // TEST ENDPOINT - Simular flujos del sistema
-// IMPORTANTE: Eliminar en producción o proteger con auth
+// Protected with admin authentication
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sendWhatsAppAlert, WhatsAppTemplates } from '@/lib/notifications/whatsapp';
@@ -8,8 +8,68 @@ import { notifyEscalation, notifyTeamAssignment } from '@/lib/notifications/mult
 import { EscalationManager } from '@/lib/escalation/escalation-manager';
 import { generateProjectTeam } from '@/lib/team/fictional-team-generator';
 import type { Escalation } from '@/types/database';
+import { logger } from '@/lib/logger';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+// Verify user is admin
+async function verifyAdmin(request: NextRequest): Promise<{ isAdmin: boolean; error?: string }> {
+  // Allow in development only with specific header
+  if (process.env.NODE_ENV === 'development') {
+    const devKey = request.headers.get('x-dev-key');
+    if (devKey === process.env.DEV_TEST_KEY) {
+      return { isAdmin: true };
+    }
+  }
+
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          },
+        },
+      }
+    );
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { isAdmin: false, error: 'Not authenticated' };
+    }
+
+    // Check if user is admin
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return { isAdmin: false, error: 'Admin access required' };
+    }
+
+    return { isAdmin: true };
+  } catch (error) {
+    return { isAdmin: false, error: 'Authentication failed' };
+  }
+}
 
 export async function POST(request: NextRequest) {
+  // Verify admin access
+  const { isAdmin, error: authError } = await verifyAdmin(request);
+  if (!isAdmin) {
+    return NextResponse.json({ error: authError || 'Unauthorized' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const action = searchParams.get('action');
 
@@ -227,7 +287,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
     }
   } catch (error) {
-    console.error('Error en simulación:', error);
+    logger.error('Error en simulación', error, { route: 'test/simulate' });
     return NextResponse.json({
       error: 'Error en simulación',
       details: error instanceof Error ? error.message : 'Unknown error'

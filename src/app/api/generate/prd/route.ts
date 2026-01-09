@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generatePRD } from '@/lib/openai/prd-generator';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ prd });
   } catch (error) {
-    console.error('Error generating PRD:', error);
+    logger.error('Error generating PRD', error, { route: 'generate/prd' });
     return NextResponse.json(
       { error: 'Failed to generate PRD' },
       { status: 500 }

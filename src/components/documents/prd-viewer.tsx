@@ -145,8 +145,8 @@ export function PRDViewer({
           setTechnicalSpec(data.spec || data);
         }
       }
-    } catch (error) {
-      console.error(`Error generating ${type}:`, error);
+    } catch {
+      // Silently fail - UI will show loading state
     } finally {
       setLoading(null);
     }

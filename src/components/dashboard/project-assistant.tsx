@@ -105,8 +105,7 @@ export function ProjectAssistantChat({ projectId, userId }: ProjectAssistantChat
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Error sending message:', error);
+    } catch {
       const errorMessage: AssistantMessage = {
         role: 'assistant',
         content: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.',

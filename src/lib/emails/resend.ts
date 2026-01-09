@@ -2,6 +2,8 @@
 // EMAIL SERVICE CON RESEND
 // ============================================
 
+import { logger } from '@/lib/logger';
+
 interface EmailOptions {
   to: string | string[];
   subject: string;
@@ -27,7 +29,7 @@ class EmailService {
 
   async send(options: EmailOptions): Promise<ResendResponse | null> {
     if (!this.apiKey) {
-      console.warn('RESEND_API_KEY not configured, email not sent');
+      logger.warn('RESEND_API_KEY not configured', { service: 'email' });
       return null;
     }
 
@@ -49,14 +51,14 @@ class EmailService {
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        console.error('Error sending email:', error);
+        const errorText = await response.text();
+        logger.error('Error sending email', new Error(errorText), { service: 'email' });
         return null;
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Error sending email:', error);
+      logger.error('Error sending email', error, { service: 'email' });
       return null;
     }
   }

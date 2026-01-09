@@ -118,8 +118,7 @@ export default function AdminTeamPage() {
   );
 
   const handleInviteMember = async () => {
-    // In a real implementation, this would send an invite email
-    console.log('Inviting member:', newMember);
+    // TODO: In a real implementation, this would send an invite email
     setIsDialogOpen(false);
     setNewMember({
       email: '',

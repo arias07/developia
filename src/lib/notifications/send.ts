@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 // Server-side notification sender using service role (lazy initialization)
 let supabaseClient: SupabaseClient | null = null;
@@ -53,13 +54,13 @@ export async function sendNotification({
     });
 
     if (error) {
-      console.error('Error sending notification:', error);
+      logger.error('Error sending notification', error, { userId });
       return { success: false, error: error.message };
     }
 
     return { success: true };
   } catch (err) {
-    console.error('Error sending notification:', err);
+    logger.error('Error sending notification (catch)', err, { userId });
     return { success: false, error: 'Failed to send notification' };
   }
 }
@@ -86,13 +87,13 @@ export async function sendBulkNotification({
     const { error } = await getSupabase().from('notifications').insert(notifications);
 
     if (error) {
-      console.error('Error sending bulk notifications:', error);
+      logger.error('Error sending bulk notifications', error);
       return { success: false, error: error.message };
     }
 
     return { success: true };
   } catch (err) {
-    console.error('Error sending bulk notifications:', err);
+    logger.error('Error sending bulk notifications (catch)', err);
     return { success: false, error: 'Failed to send notifications' };
   }
 }
@@ -114,7 +115,7 @@ export async function notifyAdmins({
       .in('role', ['admin', 'project_manager']);
 
     if (fetchError) {
-      console.error('Error fetching admins:', fetchError);
+      logger.error('Error fetching admins', fetchError);
       return { success: false, error: fetchError.message };
     }
 
@@ -125,7 +126,7 @@ export async function notifyAdmins({
     const adminIds = admins.map((a) => a.id);
     return sendBulkNotification({ userIds: adminIds, title, message, type, data });
   } catch (err) {
-    console.error('Error notifying admins:', err);
+    logger.error('Error notifying admins', err);
     return { success: false, error: 'Failed to notify admins' };
   }
 }

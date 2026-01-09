@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { chatWithClaude } from '@/lib/claude/code-generator';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+import { RateLimiters, getRequestIdentifier, rateLimitResponse } from '@/lib/security/rate-limiter';
 
 export async function POST(request: NextRequest) {
+  // Rate limiting for AI endpoints (expensive operations)
+  const identifier = getRequestIdentifier(request);
+  const rateLimit = RateLimiters.aiGeneration(identifier);
+
+  if (!rateLimit.allowed) {
+    return rateLimitResponse(rateLimit);
+  }
+
   try {
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -41,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ response });
   } catch (error) {
-    console.error('Error chatting with Claude:', error);
+    logger.error('Error chatting with Claude', error, { route: 'chat/claude' });
     return NextResponse.json(
       { error: 'Failed to get response from Claude' },
       { status: 500 }

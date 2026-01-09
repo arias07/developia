@@ -11,6 +11,8 @@ import {
   type ActionContext,
 } from '@/lib/assistants/assistant-actions';
 import type { AssistantMessage, AssistantConversation } from '@/types/database';
+import { logger } from '@/lib/logger';
+import { RateLimiters, getRequestIdentifier, rateLimitResponse } from '@/lib/security/rate-limiter';
 
 // Supabase client
 function getSupabase() {
@@ -37,6 +39,14 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
+  // Rate limiting for AI endpoints
+  const identifier = getRequestIdentifier(request);
+  const rateLimit = RateLimiters.aiGeneration(identifier);
+
+  if (!rateLimit.allowed) {
+    return rateLimitResponse(rateLimit);
+  }
+
   try {
     const { projectId } = await params;
     const body: ChatRequest = await request.json();
@@ -93,7 +103,7 @@ export async function POST(
         .single();
 
       if (createError) {
-        console.error('Error creating conversation:', createError);
+        logger.error('Error creating conversation', createError, { projectId, userId });
         return NextResponse.json(
           { error: 'Failed to create conversation' },
           { status: 500 }
@@ -201,7 +211,7 @@ export async function POST(
       .eq('id', conversation.id);
 
     if (updateError) {
-      console.error('Error updating conversation:', updateError);
+      logger.error('Error updating conversation', updateError, { conversationId: conversation.id });
     }
 
     // Update assistant stats
@@ -229,7 +239,7 @@ export async function POST(
         : null,
     });
   } catch (error) {
-    console.error('Error in assistant chat:', error);
+    logger.error('Error in assistant chat', error, { route: 'assistant/chat POST' });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -285,7 +295,7 @@ export async function GET(
         .order('last_message_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching conversations:', error);
+        logger.error('Error fetching conversations list', error, { projectId, userId });
         return NextResponse.json(
           { error: 'Failed to fetch conversations' },
           { status: 500 }
@@ -295,7 +305,7 @@ export async function GET(
       return NextResponse.json({ conversations: data || [] });
     }
   } catch (error) {
-    console.error('Error fetching conversations:', error);
+    logger.error('Error fetching conversations', error, { route: 'assistant/chat GET' });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

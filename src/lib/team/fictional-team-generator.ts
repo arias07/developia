@@ -2,6 +2,7 @@
 // Generates a complete team (PM + 1 Sr + 4 Jr) for each paid project
 
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 import type { ProjectTeamMember, FictionalTeamRole, ProjectType } from '@/types/database';
 import {
   PM_PROFILES,
@@ -147,7 +148,7 @@ export async function assignFictionalTeam(
     .eq('project_id', projectId);
 
   if (existingTeam && existingTeam.length > 0) {
-    console.log(`Team already exists for project ${projectId}`);
+    logger.debug('Team already exists', { projectId });
     return existingTeam as ProjectTeamMember[];
   }
 
@@ -173,11 +174,11 @@ export async function assignFictionalTeam(
     .select();
 
   if (error) {
-    console.error('Error inserting team members:', error);
+    logger.error('Error inserting team members', error, { projectId });
     throw new Error(`Failed to assign team: ${error.message}`);
   }
 
-  console.log(`Team assigned to project ${projectId}:`, insertedTeam?.length, 'members');
+  logger.audit('team_assigned', { projectId, teamSize: insertedTeam?.length });
 
   return insertedTeam as ProjectTeamMember[];
 }
@@ -196,7 +197,7 @@ export async function getProjectTeam(projectId: string): Promise<ProjectTeamMemb
     .order('role', { ascending: true });
 
   if (error) {
-    console.error('Error fetching project team:', error);
+    logger.error('Error fetching project team', error, { projectId });
     throw new Error(`Failed to get project team: ${error.message}`);
   }
 
@@ -215,7 +216,7 @@ export async function deactivateProjectTeam(projectId: string): Promise<void> {
     .eq('project_id', projectId);
 
   if (error) {
-    console.error('Error deactivating team:', error);
+    logger.error('Error deactivating team', error, { projectId });
     throw new Error(`Failed to deactivate team: ${error.message}`);
   }
 }

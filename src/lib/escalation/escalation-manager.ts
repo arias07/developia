@@ -3,6 +3,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { notifyEscalation } from '../notifications/multi-channel';
+import { logger } from '@/lib/logger';
 import type {
   Escalation,
   EscalationType,
@@ -113,7 +114,7 @@ async function getProjectDetails(projectId: string): Promise<{
     .single();
 
   if (error || !project) {
-    console.error('Error fetching project details:', error);
+    logger.error('Error fetching project details', error, { projectId });
     return null;
   }
 
@@ -209,7 +210,7 @@ export class EscalationManager {
       .single();
 
     if (error || !escalation) {
-      console.error('Error creating escalation:', error);
+      logger.error('Error creating escalation', error, { projectId: params.projectId });
       return null;
     }
 
@@ -217,7 +218,7 @@ export class EscalationManager {
     const projectDetails = await getProjectDetails(params.projectId);
 
     if (!projectDetails) {
-      console.error('Could not get project details for notification');
+      logger.warn('Could not get project details for notification');
       return {
         escalation: escalation as Escalation,
         notified: { app: false, email: false, whatsApp: false },
@@ -244,7 +245,7 @@ export class EscalationManager {
       })
       .eq('id', params.projectId);
 
-    console.log(`[Escalation] Created ${severity} escalation for project ${params.projectId}`);
+    logger.audit('escalation_created', { severity, projectId: params.projectId, escalationId: escalation.id });
 
     return {
       escalation: escalation as Escalation,
@@ -273,7 +274,7 @@ export class EscalationManager {
       .single();
 
     if (error) {
-      console.error('Error assigning escalation:', error);
+      logger.error('Error assigning escalation', error, { escalationId });
       return null;
     }
 
@@ -316,7 +317,7 @@ export class EscalationManager {
       .single();
 
     if (error) {
-      console.error('Error updating escalation status:', error);
+      logger.error('Error updating escalation status', error, { escalationId, status });
       return null;
     }
 
@@ -348,7 +349,7 @@ export class EscalationManager {
       .single();
 
     if (error) {
-      console.error('Error resolving escalation:', error);
+      logger.error('Error resolving escalation', error, { escalationId });
       return null;
     }
 
@@ -375,7 +376,7 @@ export class EscalationManager {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching pending escalations:', error);
+      logger.error('Error fetching pending escalations', error);
       return [];
     }
 
@@ -408,7 +409,7 @@ export class EscalationManager {
       .single();
 
     if (escError || !escalation) {
-      console.error('Error fetching escalation:', escError);
+      logger.error('Error fetching escalation', escError, { escalationId });
       return null;
     }
 
@@ -420,7 +421,7 @@ export class EscalationManager {
       .single();
 
     if (freelancerError || !freelancer) {
-      console.error('Error fetching freelancer:', freelancerError);
+      logger.error('Error fetching freelancer', freelancerError, { freelancerId });
       return null;
     }
 
@@ -449,7 +450,7 @@ export class EscalationManager {
         .single();
 
       if (assignError || !newAssignment) {
-        console.error('Error creating assignment:', assignError);
+        logger.error('Error creating assignment', assignError, { freelancerId, projectId: escalation.project_id });
         return null;
       }
       assignment = newAssignment;
@@ -477,7 +478,7 @@ export class EscalationManager {
       .single();
 
     if (taskError) {
-      console.error('Error creating task:', taskError);
+      logger.error('Error creating task', taskError, { escalationId, freelancerId });
       return null;
     }
 
@@ -502,7 +503,7 @@ export class EscalationManager {
       });
     }
 
-    console.log(`[Escalation] Assigned to freelancer ${freelancer.full_name} with task ${task.id}`);
+    logger.audit('escalation_assigned_to_freelancer', { freelancerName: freelancer.full_name, taskId: task.id, escalationId });
 
     return task as FreelancerTask;
   }
@@ -529,7 +530,7 @@ export class EscalationManager {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching available freelancers:', error);
+      logger.error('Error fetching available freelancers', error);
       return [];
     }
 

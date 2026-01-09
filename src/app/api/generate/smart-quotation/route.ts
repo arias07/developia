@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { calculateQuotation, validateProjectViability, PROJECT_TYPE_CONFIGS } from '@/lib/pricing/pricing-engine';
 import { convertCurrency, formatCurrency, toUSD, fromUSD, type CurrencyCode } from '@/lib/pricing/currency';
 import type { ProjectType, ProjectComplexity } from '@/types/database';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -174,7 +175,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error generating quotation:', error);
+    logger.error('Error generating smart quotation', error, { route: 'generate/smart-quotation' });
     return NextResponse.json(
       { error: 'Failed to generate quotation' },
       { status: 500 }

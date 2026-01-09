@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateUserStories } from '@/lib/openai/prd-generator';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ stories });
   } catch (error) {
-    console.error('Error generating user stories:', error);
+    logger.error('Error generating user stories', error, { route: 'generate/user-stories' });
     return NextResponse.json(
       { error: 'Failed to generate user stories' },
       { status: 500 }

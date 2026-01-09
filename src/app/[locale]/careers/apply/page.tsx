@@ -373,8 +373,7 @@ export default function ApplyPage() {
       if (submitError) throw submitError;
 
       setSubmitted(true);
-    } catch (err) {
-      console.error('Error submitting application:', err);
+    } catch {
       setError(t.errors.submit);
     } finally {
       setSubmitting(false);

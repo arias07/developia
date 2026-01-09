@@ -103,7 +103,6 @@ export default function ProjectDetailPage() {
         .single();
 
       if (error) {
-        console.error('Error fetching project:', error);
         router.push('/dashboard');
         return;
       }

@@ -5,9 +5,57 @@ import type Stripe from 'stripe';
 import { assignFictionalTeam } from '@/lib/team/fictional-team-generator';
 import { notifyTeamAssignment } from '@/lib/notifications/multi-channel';
 import type { ProjectType } from '@/types/database';
+import { logger } from '@/lib/logger';
 
 // Use service role for webhook (no user context) - lazy initialization
 let supabaseClient: SupabaseClient | null = null;
+
+// ============================================
+// IDEMPOTENCY - Prevent duplicate webhook processing
+// ============================================
+// In-memory store for processed event IDs (use Redis in production)
+const processedEvents = new Map<string, { timestamp: number; status: string }>();
+
+// Cleanup old entries every 10 minutes
+const IDEMPOTENCY_TTL = 24 * 60 * 60 * 1000; // 24 hours
+const CLEANUP_INTERVAL = 10 * 60 * 1000; // 10 minutes
+
+let cleanupTimer: NodeJS.Timeout | null = null;
+
+function startIdempotencyCleanup() {
+  if (cleanupTimer) return;
+
+  cleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [eventId, data] of processedEvents.entries()) {
+      if (now - data.timestamp > IDEMPOTENCY_TTL) {
+        processedEvents.delete(eventId);
+      }
+    }
+  }, CLEANUP_INTERVAL);
+
+  if (cleanupTimer.unref) {
+    cleanupTimer.unref();
+  }
+}
+
+startIdempotencyCleanup();
+
+/**
+ * Check if event was already processed (idempotency check)
+ */
+function isEventProcessed(eventId: string): boolean {
+  return processedEvents.has(eventId);
+}
+
+/**
+ * Mark event as processed
+ */
+function markEventProcessed(eventId: string, status: string): void {
+  processedEvents.set(eventId, { timestamp: Date.now(), status });
+}
+
+// ============================================
 
 function getSupabase(): SupabaseClient {
   if (!supabaseClient) {
@@ -39,8 +87,14 @@ export async function POST(request: NextRequest) {
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    console.error('Webhook signature verification failed:', err);
+    logger.error('Webhook signature verification failed', err);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+  }
+
+  // Idempotency check - prevent duplicate processing
+  if (isEventProcessed(event.id)) {
+    logger.info('Webhook event already processed (idempotent)', { eventId: event.id, type: event.type });
+    return NextResponse.json({ received: true, duplicate: true });
   }
 
   try {
@@ -70,12 +124,18 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        logger.debug(`Unhandled event type: ${event.type}`);
     }
+
+    // Mark event as successfully processed
+    markEventProcessed(event.id, 'success');
+    logger.audit('webhook_processed', { eventId: event.id, type: event.type });
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    // Mark event as failed (but still mark it to prevent re-processing of broken events)
+    markEventProcessed(event.id, 'failed');
+    logger.error('Error processing webhook', error, { eventId: event.id, type: event.type });
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }
@@ -84,7 +144,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   const { projectId, clientId, paymentType, milestoneId } = session.metadata || {};
 
   if (!projectId || !clientId) {
-    console.error('Missing metadata in checkout session');
+    logger.error('Missing metadata in checkout session', null, { sessionId: session.id });
     return;
   }
 
@@ -134,10 +194,10 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
             team.length
           );
 
-          console.log(`[Webhook] Fictional team assigned to project ${projectId}: ${team.length} members`);
+          logger.audit('fictional_team_assigned', { projectId, teamSize: team.length });
         }
       } catch (teamError) {
-        console.error('[Webhook] Error assigning fictional team:', teamError);
+        logger.error('Error assigning fictional team', teamError, { projectId });
         // Don't fail the webhook if team assignment fails
       }
     }

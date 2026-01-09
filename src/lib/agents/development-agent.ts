@@ -16,6 +16,7 @@ import { sendNotification } from '@/lib/notifications/send';
 import { EscalationManager } from '@/lib/escalation/escalation-manager';
 import { createProjectAssistant } from '@/lib/assistants/project-assistant-generator';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 import type { ProjectRequirements, Project } from '@/types/database';
 
 // Supabase client for fetching project data
@@ -164,10 +165,10 @@ export class DevelopmentAgent {
             deploymentUrl: result.deploymentUrl,
             repositoryUrl: result.repositoryUrl,
           });
-          console.log(`[DevelopmentAgent] Assistant created for project ${this.config.projectId}`);
+          logger.audit('assistant_created', { projectId: this.config.projectId });
         }
       } catch (assistantError) {
-        console.error('[DevelopmentAgent] Failed to create assistant:', assistantError);
+        logger.error('Failed to create assistant', assistantError, { projectId: this.config.projectId });
         // Don't fail the whole process if assistant creation fails
       }
 
@@ -200,9 +201,9 @@ export class DevelopmentAgent {
           currentPhase,
           1 // AI attempt count
         );
-        console.log(`[DevelopmentAgent] Escalation created for project ${this.config.projectId}`);
+        logger.audit('escalation_created_from_agent', { projectId: this.config.projectId });
       } catch (escalationError) {
-        console.error('[DevelopmentAgent] Failed to create escalation:', escalationError);
+        logger.error('Failed to create escalation', escalationError, { projectId: this.config.projectId });
       }
 
       return result;
@@ -302,7 +303,7 @@ export class DevelopmentAgent {
         });
         this.generatedFiles.push(`src/components/${comp.name}.tsx`);
       } catch (error) {
-        console.error(`Error generating component ${comp.name}:`, error);
+        logger.error(`Error generating component ${comp.name}`, error);
       }
     }
 
