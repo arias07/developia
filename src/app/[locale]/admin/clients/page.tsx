@@ -71,7 +71,7 @@ export default function AdminClientsPage() {
       if (profilesData) {
         // Get project counts for each client
         const clientsWithProjects = await Promise.all(
-          profilesData.map(async (profile) => {
+          profilesData.map(async (profile: any) => {
             const { count } = await supabase
               .from('projects')
               .select('id', { count: 'exact' })
@@ -90,9 +90,9 @@ export default function AdminClientsPage() {
         const now = new Date();
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const newThisMonth = clientsWithProjects.filter(
-          (c) => new Date(c.created_at) >= firstDayOfMonth
+          (c: any) => new Date(c.created_at) >= firstDayOfMonth
         ).length;
-        const withProjects = clientsWithProjects.filter((c) => c.projects_count > 0).length;
+        const withProjects = clientsWithProjects.filter((c: any) => c.projects_count > 0).length;
 
         setStats({
           total: clientsWithProjects.length,
