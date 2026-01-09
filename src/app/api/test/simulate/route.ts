@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
           projectId,
           new Error('TEST: Error simulado para pruebas'),
           'testing',
-          { test: true, timestamp: new Date().toISOString() }
+          3 // aiAttempts
         );
 
         return NextResponse.json({
