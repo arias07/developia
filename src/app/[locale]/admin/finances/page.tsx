@@ -86,7 +86,7 @@ export default function AdminFinancesPage() {
     monthlyRevenue: 0,
     pendingPayments: 0,
     completedPayments: 0,
-    revenueGrowth: 15.3,
+    revenueGrowth: 0,
     averageProjectValue: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -125,20 +125,36 @@ export default function AdminFinancesPage() {
         const totalRevenue = completed.reduce((sum, p) => sum + p.amount, 0);
         const avgValue = completed.length > 0 ? totalRevenue / completed.length : 0;
 
-        // Get current month payments
+        // Get current month and previous month dates
         const now = new Date();
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const monthlyPayments = completed.filter(
+        const firstDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+        // Current month revenue
+        const currentMonthPayments = completed.filter(
           (p) => new Date(p.created_at) >= firstDayOfMonth
         );
-        const monthlyRevenue = monthlyPayments.reduce((sum, p) => sum + p.amount, 0);
+        const monthlyRevenue = currentMonthPayments.reduce((sum, p) => sum + p.amount, 0);
+
+        // Previous month revenue
+        const prevMonthPayments = completed.filter((p) => {
+          const date = new Date(p.created_at);
+          return date >= firstDayOfPrevMonth && date <= lastDayOfPrevMonth;
+        });
+        const prevMonthRevenue = prevMonthPayments.reduce((sum, p) => sum + p.amount, 0);
+
+        // Calculate growth percentage
+        const revenueGrowth = prevMonthRevenue > 0
+          ? Math.round(((monthlyRevenue - prevMonthRevenue) / prevMonthRevenue) * 1000) / 10
+          : monthlyRevenue > 0 ? 100 : 0;
 
         setStats({
           totalRevenue,
           monthlyRevenue,
           pendingPayments: pending.reduce((sum, p) => sum + p.amount, 0),
           completedPayments: completed.length,
-          revenueGrowth: 15.3, // Placeholder - would need historical data
+          revenueGrowth,
           averageProjectValue: avgValue,
         });
       }

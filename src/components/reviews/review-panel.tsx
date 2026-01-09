@@ -94,118 +94,65 @@ export function ReviewPanel({ projectId, isAdmin = false }: ReviewPanelProps) {
     try {
       const { data, error } = await supabase
         .from('reviews')
-        .select('*')
+        .select(`
+          *,
+          reviewer:profiles!reviews_user_id_fkey(full_name)
+        `)
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
       if (error) {
-        // Use mock data for demo
-        // Use mock data for demo
-        setReviews(getMockReviews());
+        console.error('Error fetching reviews:', error);
+        setReviews([]);
       } else {
-        setReviews(data || getMockReviews());
+        const formattedReviews = (data || []).map((review: any) => ({
+          ...review,
+          reviewer_name: review.reviewer?.full_name || 'Usuario',
+        }));
+        setReviews(formattedReviews);
       }
     } catch (error) {
-      // Fallback to mock data
-      setReviews(getMockReviews());
+      console.error('Error fetching reviews:', error);
+      setReviews([]);
     } finally {
       setLoading(false);
     }
-  }
-
-  function getMockReviews(): Review[] {
-    return [
-      {
-        id: '1',
-        project_id: projectId,
-        user_id: 'admin',
-        title: 'Diseño de la Página Principal',
-        description: 'Por favor revisa el diseño de la landing page. Hemos implementado el header, hero section, y la sección de features.',
-        status: 'pending',
-        created_at: new Date(Date.now() - 86400000).toISOString(),
-        updated_at: new Date(Date.now() - 86400000).toISOString(),
-        reviewer_name: 'Equipo Devvy',
-      },
-      {
-        id: '2',
-        project_id: projectId,
-        user_id: 'admin',
-        title: 'Flujo de Autenticación',
-        description: 'El sistema de login/registro está listo para revisión. Incluye recuperación de contraseña y autenticación social.',
-        status: 'approved',
-        feedback: 'Todo se ve genial! El flujo es intuitivo.',
-        created_at: new Date(Date.now() - 172800000).toISOString(),
-        updated_at: new Date(Date.now() - 86400000).toISOString(),
-        reviewer_name: 'Equipo Devvy',
-      },
-      {
-        id: '3',
-        project_id: projectId,
-        user_id: 'admin',
-        title: 'Dashboard de Usuario',
-        description: 'Dashboard completado con estadísticas, gráficos y navegación lateral.',
-        status: 'changes_requested',
-        feedback: 'Me gustaría que los colores fueran más vibrantes y que el menú lateral sea colapsable.',
-        created_at: new Date(Date.now() - 259200000).toISOString(),
-        updated_at: new Date(Date.now() - 172800000).toISOString(),
-        reviewer_name: 'Equipo Devvy',
-      },
-    ];
   }
 
   async function fetchComments(reviewId: string) {
     try {
       const { data, error } = await supabase
         .from('review_comments')
-        .select('*')
+        .select(`
+          *,
+          commenter:profiles!review_comments_user_id_fkey(full_name)
+        `)
         .eq('review_id', reviewId)
         .order('created_at', { ascending: true });
 
       if (error) {
-        // Use mock comments for demo
+        console.error('Error fetching comments:', error);
         setComments((prev) => ({
           ...prev,
-          [reviewId]: getMockComments(reviewId),
+          [reviewId]: [],
         }));
       } else {
+        const formattedComments = (data || []).map((comment: any) => ({
+          ...comment,
+          user_name: comment.commenter?.full_name || (comment.is_admin ? 'Equipo Devvy' : 'Usuario'),
+        }));
         setComments((prev) => ({
           ...prev,
-          [reviewId]: data || [],
+          [reviewId]: formattedComments,
         }));
       }
     } catch (error) {
-      // Fallback to mock data
+      console.error('Error fetching comments:', error);
       setComments((prev) => ({
         ...prev,
-        [reviewId]: getMockComments(reviewId),
+        [reviewId]: [],
       }));
     }
-  }
-
-  function getMockComments(reviewId: string): ReviewComment[] {
-    if (reviewId === '3') {
-      return [
-        {
-          id: 'c1',
-          review_id: reviewId,
-          user_id: 'user',
-          content: 'Entendido, trabajaremos en hacer los colores más llamativos.',
-          is_admin: true,
-          created_at: new Date(Date.now() - 100000000).toISOString(),
-          user_name: 'Equipo Devvy',
-        },
-        {
-          id: 'c2',
-          review_id: reviewId,
-          user_id: 'admin',
-          content: 'Perfecto, también me gustaría ver un dark mode opcional.',
-          is_admin: false,
-          created_at: new Date(Date.now() - 50000000).toISOString(),
-          user_name: 'Cliente',
-        },
-      ];
-    }
-    return [];
   }
 
   function toggleReview(reviewId: string) {
@@ -250,22 +197,7 @@ export function ReviewPanel({ projectId, isAdmin = false }: ReviewPanelProps) {
       }));
       setNewComment((prev) => ({ ...prev, [reviewId]: '' }));
     } catch (error) {
-      // Add optimistically for demo
-      // Still add for demo
-      const newCommentData: ReviewComment = {
-        id: crypto.randomUUID(),
-        review_id: reviewId,
-        user_id: 'current',
-        content,
-        is_admin: isAdmin,
-        created_at: new Date().toISOString(),
-        user_name: isAdmin ? 'Equipo Devvy' : 'Tú',
-      };
-      setComments((prev) => ({
-        ...prev,
-        [reviewId]: [...(prev[reviewId] || []), newCommentData],
-      }));
-      setNewComment((prev) => ({ ...prev, [reviewId]: '' }));
+      console.error('Error adding comment:', error);
     } finally {
       setSubmitting(null);
     }
@@ -286,13 +218,7 @@ export function ReviewPanel({ projectId, isAdmin = false }: ReviewPanelProps) {
         )
       );
     } catch (error) {
-      // Update optimistically for demo
-      // Update optimistically for demo
-      setReviews((prev) =>
-        prev.map((r) =>
-          r.id === reviewId ? { ...r, status, feedback, updated_at: new Date().toISOString() } : r
-        )
-      );
+      console.error('Error updating review status:', error);
     }
   }
 
@@ -321,22 +247,7 @@ export function ReviewPanel({ projectId, isAdmin = false }: ReviewPanelProps) {
       setNewReview({ title: '', description: '' });
       setShowNewReview(false);
     } catch (error) {
-      // Add optimistically for demo
-      // Add optimistically for demo
-      const reviewData: Review = {
-        id: crypto.randomUUID(),
-        project_id: projectId,
-        user_id: 'current',
-        title: newReview.title,
-        description: newReview.description,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        reviewer_name: isAdmin ? 'Equipo Devvy' : 'Cliente',
-      };
-      setReviews((prev) => [reviewData, ...prev]);
-      setNewReview({ title: '', description: '' });
-      setShowNewReview(false);
+      console.error('Error creating review:', error);
     } finally {
       setSubmitting(null);
     }

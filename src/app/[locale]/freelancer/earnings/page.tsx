@@ -12,10 +12,16 @@ import {
   CreditCard,
   CheckCircle,
   AlertCircle,
+  Loader2,
+  X,
+  Building,
+  Wallet,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -23,6 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { FreelancerProfile, FreelancerPayment, FreelancerTask } from '@/types/database';
 
@@ -122,6 +136,20 @@ export default function FreelancerEarningsPage() {
     pendingPayment: 0,
     thisMonth: 0,
     hoursWorked: 0,
+  });
+
+  // Withdrawal modal state
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+  const [withdrawalLoading, setWithdrawalLoading] = useState(false);
+  const [withdrawalAmount, setWithdrawalAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
+  const [paymentDetails, setPaymentDetails] = useState({
+    bank_name: '',
+    account_number: '',
+    routing_number: '',
+    account_holder: '',
+    paypal_email: '',
+    wise_email: '',
   });
 
   useEffect(() => {
@@ -251,6 +279,80 @@ export default function FreelancerEarningsPage() {
     });
   };
 
+  const handleWithdrawalSubmit = async () => {
+    const amount = parseFloat(withdrawalAmount);
+
+    if (!amount || amount < 100) {
+      toast.error(locale === 'es' ? 'Monto mínimo: $100' : 'Minimum amount: $100');
+      return;
+    }
+
+    if (amount > stats.pendingPayment) {
+      toast.error(locale === 'es' ? 'Saldo insuficiente' : 'Insufficient balance');
+      return;
+    }
+
+    // Build payment details based on method
+    let details: Record<string, string> = {};
+    if (paymentMethod === 'bank_transfer') {
+      if (!paymentDetails.bank_name || !paymentDetails.account_number || !paymentDetails.account_holder) {
+        toast.error(locale === 'es' ? 'Complete todos los campos bancarios' : 'Fill all bank fields');
+        return;
+      }
+      details = {
+        bank_name: paymentDetails.bank_name,
+        account_number: paymentDetails.account_number,
+        routing_number: paymentDetails.routing_number,
+        account_holder: paymentDetails.account_holder,
+      };
+    } else if (paymentMethod === 'paypal') {
+      if (!paymentDetails.paypal_email) {
+        toast.error(locale === 'es' ? 'Ingrese email de PayPal' : 'Enter PayPal email');
+        return;
+      }
+      details = { email: paymentDetails.paypal_email };
+    } else if (paymentMethod === 'wise') {
+      if (!paymentDetails.wise_email) {
+        toast.error(locale === 'es' ? 'Ingrese email de Wise' : 'Enter Wise email');
+        return;
+      }
+      details = { email: paymentDetails.wise_email };
+    }
+
+    setWithdrawalLoading(true);
+    try {
+      const response = await fetch('/api/freelancer/withdrawals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          payment_method: paymentMethod,
+          payment_details: details,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(
+          locale === 'es'
+            ? 'Solicitud de retiro creada correctamente'
+            : 'Withdrawal request created successfully'
+        );
+        setShowWithdrawalModal(false);
+        setWithdrawalAmount('');
+        fetchData(); // Refresh data
+      } else {
+        toast.error(data.error || 'Error creating withdrawal');
+      }
+    } catch (error) {
+      console.error('Error submitting withdrawal:', error);
+      toast.error(locale === 'es' ? 'Error al procesar solicitud' : 'Error processing request');
+    } finally {
+      setWithdrawalLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -282,6 +384,10 @@ export default function FreelancerEarningsPage() {
           <Button
             className="bg-emerald-600 hover:bg-emerald-700"
             disabled={stats.pendingPayment < 100}
+            onClick={() => {
+              setWithdrawalAmount(stats.pendingPayment.toFixed(2));
+              setShowWithdrawalModal(true);
+            }}
           >
             <CreditCard className="w-4 h-4 mr-2" />
             {t.requestWithdrawal}
@@ -488,6 +594,166 @@ export default function FreelancerEarningsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Withdrawal Modal */}
+      <Dialog open={showWithdrawalModal} onOpenChange={setShowWithdrawalModal}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-emerald-400" />
+              {t.requestWithdrawal}
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {locale === 'es'
+                ? `Saldo disponible: ${formatCurrency(stats.pendingPayment, profile?.currency || 'USD')}`
+                : `Available balance: ${formatCurrency(stats.pendingPayment, profile?.currency || 'USD')}`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            {/* Amount */}
+            <div className="space-y-2">
+              <Label htmlFor="amount" className="text-white">
+                {t.amount}
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                <Input
+                  id="amount"
+                  type="number"
+                  min="100"
+                  max={stats.pendingPayment}
+                  value={withdrawalAmount}
+                  onChange={(e) => setWithdrawalAmount(e.target.value)}
+                  className="bg-slate-800 border-slate-700 text-white pl-8"
+                  placeholder="100.00"
+                />
+              </div>
+              <p className="text-xs text-slate-500">{t.minWithdrawal}: $100</p>
+            </div>
+
+            {/* Payment Method */}
+            <div className="space-y-2">
+              <Label className="text-white">{t.paymentMethod}</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-slate-700">
+                  <SelectItem value="bank_transfer">
+                    <span className="flex items-center gap-2">
+                      <Building className="w-4 h-4" />
+                      {locale === 'es' ? 'Transferencia Bancaria' : 'Bank Transfer'}
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="paypal">
+                    <span className="flex items-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      PayPal
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="wise">
+                    <span className="flex items-center gap-2">
+                      <Wallet className="w-4 h-4" />
+                      Wise
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Bank Transfer Fields */}
+            {paymentMethod === 'bank_transfer' && (
+              <div className="space-y-3">
+                <Input
+                  placeholder={locale === 'es' ? 'Nombre del banco' : 'Bank name'}
+                  value={paymentDetails.bank_name}
+                  onChange={(e) => setPaymentDetails({ ...paymentDetails, bank_name: e.target.value })}
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+                <Input
+                  placeholder={locale === 'es' ? 'Número de cuenta' : 'Account number'}
+                  value={paymentDetails.account_number}
+                  onChange={(e) => setPaymentDetails({ ...paymentDetails, account_number: e.target.value })}
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+                <Input
+                  placeholder={locale === 'es' ? 'Número de ruta (opcional)' : 'Routing number (optional)'}
+                  value={paymentDetails.routing_number}
+                  onChange={(e) => setPaymentDetails({ ...paymentDetails, routing_number: e.target.value })}
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+                <Input
+                  placeholder={locale === 'es' ? 'Titular de la cuenta' : 'Account holder name'}
+                  value={paymentDetails.account_holder}
+                  onChange={(e) => setPaymentDetails({ ...paymentDetails, account_holder: e.target.value })}
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+              </div>
+            )}
+
+            {/* PayPal Fields */}
+            {paymentMethod === 'paypal' && (
+              <Input
+                type="email"
+                placeholder={locale === 'es' ? 'Email de PayPal' : 'PayPal email'}
+                value={paymentDetails.paypal_email}
+                onChange={(e) => setPaymentDetails({ ...paymentDetails, paypal_email: e.target.value })}
+                className="bg-slate-800 border-slate-700 text-white"
+              />
+            )}
+
+            {/* Wise Fields */}
+            {paymentMethod === 'wise' && (
+              <Input
+                type="email"
+                placeholder={locale === 'es' ? 'Email de Wise' : 'Wise email'}
+                value={paymentDetails.wise_email}
+                onChange={(e) => setPaymentDetails({ ...paymentDetails, wise_email: e.target.value })}
+                className="bg-slate-800 border-slate-700 text-white"
+              />
+            )}
+
+            {/* Fee Info */}
+            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">{locale === 'es' ? 'Comisión (2%)' : 'Fee (2%)'}</span>
+                <span className="text-slate-300">
+                  -{formatCurrency(Math.max(parseFloat(withdrawalAmount || '0') * 0.02, 2), profile?.currency || 'USD')}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm mt-2 pt-2 border-t border-slate-700">
+                <span className="text-white font-medium">{locale === 'es' ? 'Recibirás' : 'You receive'}</span>
+                <span className="text-emerald-400 font-medium">
+                  {formatCurrency(
+                    Math.max(parseFloat(withdrawalAmount || '0') - Math.max(parseFloat(withdrawalAmount || '0') * 0.02, 2), 0),
+                    profile?.currency || 'USD'
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              onClick={handleWithdrawalSubmit}
+              disabled={withdrawalLoading || parseFloat(withdrawalAmount) < 100}
+              className="w-full bg-emerald-600 hover:bg-emerald-700"
+            >
+              {withdrawalLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {locale === 'es' ? 'Procesando...' : 'Processing...'}
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  {locale === 'es' ? 'Confirmar Retiro' : 'Confirm Withdrawal'}
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

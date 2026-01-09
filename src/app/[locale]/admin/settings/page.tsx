@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,45 +59,87 @@ interface SettingsState {
   };
 }
 
+const defaultSettings: SettingsState = {
+  general: {
+    siteName: 'Devvy',
+    siteUrl: 'https://devvy.tech',
+    supportEmail: 'soporte@devvy.tech',
+    timezone: 'America/Mexico_City',
+  },
+  notifications: {
+    emailNotifications: true,
+    slackNotifications: false,
+    webhookUrl: '',
+    notifyOnNewProject: true,
+    notifyOnPayment: true,
+    notifyOnEscalation: true,
+  },
+  integrations: {
+    stripeEnabled: true,
+    stripeTestMode: true,
+    resendEnabled: true,
+    githubEnabled: true,
+    vercelEnabled: true,
+    openaiEnabled: true,
+  },
+  security: {
+    twoFactorRequired: false,
+    sessionTimeout: 24,
+    ipWhitelist: '',
+  },
+};
+
 export default function AdminSettingsPage() {
-  const [settings, setSettings] = useState<SettingsState>({
-    general: {
-      siteName: 'Devvy',
-      siteUrl: 'https://devvy.tech',
-      supportEmail: 'soporte@devvy.tech',
-      timezone: 'America/Mexico_City',
-    },
-    notifications: {
-      emailNotifications: true,
-      slackNotifications: false,
-      webhookUrl: '',
-      notifyOnNewProject: true,
-      notifyOnPayment: true,
-      notifyOnEscalation: true,
-    },
-    integrations: {
-      stripeEnabled: true,
-      stripeTestMode: true,
-      resendEnabled: true,
-      githubEnabled: true,
-      vercelEnabled: true,
-      openaiEnabled: true,
-    },
-    security: {
-      twoFactorRequired: false,
-      sessionTimeout: 24,
-      ipWhitelist: '',
-    },
-  });
+  const [settings, setSettings] = useState<SettingsState>(defaultSettings);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('general');
+
+  // Fetch settings from API on mount
+  const fetchSettings = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/settings');
+      if (response.ok) {
+        const data = await response.json();
+        // Merge with defaults to ensure all fields exist
+        setSettings({
+          general: { ...defaultSettings.general, ...data.general },
+          notifications: { ...defaultSettings.notifications, ...data.notifications },
+          integrations: { ...defaultSettings.integrations, ...data.integrations },
+          security: { ...defaultSettings.security, ...data.security },
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const handleSave = async () => {
     setSaving(true);
-    // Simulate save
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setSaving(false);
-    toast.success('Configuracion guardada correctamente');
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+
+      if (response.ok) {
+        toast.success('Configuracion guardada correctamente');
+      } else {
+        toast.error('Error al guardar la configuracion');
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Error al guardar la configuracion');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const updateSetting = (
@@ -113,6 +155,14 @@ export default function AdminSettingsPage() {
       },
     }));
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

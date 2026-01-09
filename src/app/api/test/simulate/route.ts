@@ -1,7 +1,12 @@
 // TEST ENDPOINT - Simular flujos del sistema
+// DISABLED IN PRODUCTION - Only available in development
 // Protected with admin authentication
 
 import { NextRequest, NextResponse } from 'next/server';
+
+// Block this endpoint completely in production
+const isProduction = process.env.NODE_ENV === 'production';
+const ALLOW_TEST_IN_PRODUCTION = process.env.ALLOW_TEST_SIMULATE === 'true';
 import { sendWhatsAppAlert, WhatsAppTemplates } from '@/lib/notifications/whatsapp';
 import { sendTelegramAlert, TelegramTemplates } from '@/lib/notifications/telegram';
 import { notifyEscalation, notifyTeamAssignment } from '@/lib/notifications/multi-channel';
@@ -64,6 +69,14 @@ async function verifyAdmin(request: NextRequest): Promise<{ isAdmin: boolean; er
 }
 
 export async function POST(request: NextRequest) {
+  // Block in production unless explicitly enabled
+  if (isProduction && !ALLOW_TEST_IN_PRODUCTION) {
+    return NextResponse.json(
+      { error: 'Test endpoint is disabled in production' },
+      { status: 403 }
+    );
+  }
+
   // Verify admin access
   const { isAdmin, error: authError } = await verifyAdmin(request);
   if (!isAdmin) {
@@ -297,8 +310,17 @@ export async function POST(request: NextRequest) {
 
 // GET para ver instrucciones
 export async function GET() {
+  // Block in production
+  if (isProduction && !ALLOW_TEST_IN_PRODUCTION) {
+    return NextResponse.json(
+      { error: 'Test endpoint is disabled in production' },
+      { status: 403 }
+    );
+  }
+
   return NextResponse.json({
     message: 'Endpoint de simulación para pruebas',
+    warning: isProduction ? '⚠️ Running in PRODUCTION mode - be careful!' : '🔧 Development mode',
     usage: 'POST /api/test/simulate?action=<acción>',
     actions: {
       whatsapp: {
